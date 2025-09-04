@@ -450,12 +450,48 @@ ORDER BY h.symbol, hs.date;
 - FastAPI automatic documentation available at /docs endpoint
 - Alembic migrations configured for database schema management
 
-### Phase 2: Core Data Layer (Week 1-2)
-- [ ] Implement database schema with SQLAlchemy models
-- [ ] Create seed data for account types and categories
-- [ ] Build basic API routes (accounts, transactions, categories)
-- [ ] Add input validation with Pydantic
-- [ ] Set up Alembic for database migrations
+### Phase 2: Core Data Layer (Week 1-2) - CURRENT PHASE
+**Database Implementation:**
+- [ ] Configure DuckDB with SQLAlchemy (update database.py for proper DuckDB setup)
+- [ ] Create simplified core models first:
+  - [ ] `Account` model (basic fields, defer complex holdings)
+  - [ ] `Category` model (transaction categories)  
+  - [ ] `Transaction` model (basic version without AI fields)
+  - [ ] `AccountType` model (asset/liability classification)
+- [ ] Set up Alembic migrations with proper DuckDB configuration
+- [ ] Create database initialization script with seed data
+
+**API Foundation:**
+- [ ] Implement API versioning structure (`/api/v1/`)
+- [ ] Build core CRUD endpoints:
+  - [ ] `GET/POST /api/v1/accounts` (list, create accounts)
+  - [ ] `GET/POST /api/v1/categories` (manage categories)
+  - [ ] `GET/POST /api/v1/transactions` (basic transaction CRUD)
+- [ ] Add Pydantic schemas for request/response validation
+- [ ] Implement basic error handling middleware
+- [ ] Add database dependency injection pattern
+
+**Testing Foundation:**
+- [ ] Set up pytest with database fixtures
+- [ ] Create test database configuration
+- [ ] Basic API endpoint tests
+
+**Phase 2 Success Criteria:**
+- [ ] Database created with core tables (verify with DuckDB CLI)
+- [ ] API endpoints return proper JSON responses
+- [ ] Can create accounts via API (`POST /api/v1/accounts`)
+- [ ] Can create transactions via API (`POST /api/v1/transactions`)  
+- [ ] Frontend can successfully call backend APIs
+- [ ] Basic form for adding accounts renders
+- [ ] All tests pass (`pytest` in backend)
+
+**Demo Capability:** 
+Add a bank account, create a transaction, verify data persists across server restarts.
+
+**Defer to Later Phases:**
+- Complex holdings/snapshots models → Phase 7
+- AI categorization fields → Phase 5  
+- Budget-related models → Phase 6
 
 ### Phase 3: Account Management (Week 2)
 - [ ] Build account management UI (add, edit, list accounts)
@@ -576,6 +612,82 @@ npm install tailwindcss react-router-dom recharts react-hook-form
 cd ../backend
 alembic init alembic
 # Configure alembic.ini to use DuckDB
+```
+
+### 🔄 Database Implementation Strategy
+
+**Phase 2 (MVP Schema):**
+- Core entities only: `accounts`, `account_types`, `categories`, `transactions`
+- Simple direct relationships
+- Basic balance tracking in accounts table
+
+**Phase 6 (Add Budgets):**
+- Add `budgets` and `budget_line_items` tables
+
+**Phase 7 (Advanced Holdings Tracking):**
+- Implement full `holdings` and `holding_snapshots` architecture
+- Migrate from simple account balances to sophisticated tracking
+- Create database views for historical aggregation
+
+**Migration Path:**
+- Each phase includes Alembic migrations to evolve schema
+- Backward compatibility maintained between phases
+- Data preservation during schema evolution
+
+### 📦 Dependency Addition Timeline
+
+**Phase 1 (Foundation):** ✅ COMPLETE
+- Basic React + TypeScript + Tailwind
+- FastAPI + SQLAlchemy + DuckDB  
+- Development tooling
+
+**Phase 2 (Core Data):**
+- `react-hook-form` - For account/transaction forms
+- `axios` - API communication
+- Backend: No new dependencies needed
+
+**Phase 3 (Account Management):**
+- `react-router-dom` - Navigation between pages
+
+**Phase 5 (AI Categorization):**
+- `@tanstack/react-query` - Advanced state management  
+- Backend: spaCy and scikit-learn (already included)
+
+**Phase 7 (Dashboard/Charts):**
+- `recharts` - Financial visualizations
+- `date-fns` - Date manipulation for reports
+
+*Rationale: Prevents dependency bloat and maintains focus per phase*
+
+### 🔧 Development Configuration
+
+**Database Setup (Phase 2):**
+```bash
+# Configure DuckDB path
+mkdir -p data/
+# Database will be created automatically at: data/piggy.db
+
+# Set up migrations
+cd backend
+alembic revision --autogenerate -m "Initial core models" 
+alembic upgrade head
+```
+
+**Environment Variables:**
+```bash
+# backend/.env (create this file)
+DATABASE_URL=duckdb:///data/piggy.db
+DEBUG=true
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+```
+
+**API Testing:**
+```bash
+# Test backend health
+curl http://localhost:8000/health
+
+# Access automatic API docs  
+open http://localhost:8000/docs
 ```
 
 ---

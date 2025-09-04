@@ -103,3 +103,52 @@ The project is planned in 8 phases:
 8. **Reports & Polish**: Advanced analytics and final touches
 
 Refer to PROJECT_PLAN.md for detailed phase breakdown and user stories.
+
+## Git and Repository Management
+
+### CRITICAL: Never Commit Dependencies or Generated Files
+
+**Golden Rule**: If it can be regenerated from other files in the repo (like `requirements.txt` or `package.json`), it should NOT be committed.
+
+### ❌ NEVER Commit These:
+- **Python**: `venv/`, `__pycache__/`, `*.pyc`, `*.pyo`, `.env`
+- **Node.js**: `node_modules/`, `npm-debug.log*`, `yarn-error.log*`
+- **Build outputs**: `dist/`, `build/`, `.next/`, coverage reports
+- **IDE files**: `.vscode/`, `.idea/`, `*.swp`, `.DS_Store`
+- **Database files**: `*.db`, `*.sqlite`, `data/*.duckdb` (unless sample data)
+- **Logs**: `*.log`, `logs/`
+
+### ✅ Safe Git Workflow:
+1. **Always check before committing**:
+   ```bash
+   git status              # See what's staged
+   git diff --staged      # Review all changes
+   ```
+
+2. **Add files selectively** (avoid `git add .` unless certain):
+   ```bash
+   git add backend/app/ backend/requirements.txt  # Specific paths
+   git add frontend/src/ frontend/package.json    # Not node_modules/
+   ```
+
+3. **Trust the .gitignore**: The project has comprehensive ignore rules, but verify large commits
+
+### Why This Matters:
+- **Repository size**: Dependencies can add 100MB+ per commit
+- **Push failures**: GitHub rejects pushes over ~100MB
+- **Cross-platform issues**: Compiled dependencies don't work across systems  
+- **Version conflicts**: Different developers may have different dependency versions
+
+### Recovery from Mistakes:
+If you accidentally commit large files:
+```bash
+# Remove from staging (before commit)
+git restore --staged problematic-directory/
+
+# Remove from last commit (after commit, before push)
+git reset --soft HEAD~1
+
+# For already pushed commits, use git-filter-branch or BFG Repo Cleaner
+```
+
+**Remember**: Dependencies are meant to be ephemeral and recreatable. Source code is permanent and valuable.
