@@ -8,6 +8,23 @@ Piggy is a personal finance web application for tracking spending, income, and n
 
 ## Workflow
 - Always use a todo list and solve sequentially
+- Complete one task at a time
+- **ALWAYS wait for explicit user approval before starting the next task**
+
+### Task-Based Pull Request Workflow
+Each individual task should follow this process:
+1. **Start Task** - Mark todo item as `in_progress`
+2. **Create Feature Branch** - Create descriptive branch name (e.g., `feature/account-list-component`)
+3. **Implement Feature** - Build the specific functionality for this task only
+4. **Commit Changes** - Make focused commits with clear messages
+5. **Push to Remote** - Push branch so PR can be reviewed in GitHub UI
+6. **Create Pull Request** - One PR per task with focused scope and description
+7. **Wait for Review** - User reviews PR and provides feedback via GitHub
+8. **Address Feedback** - Make requested changes if needed
+9. **Merge & Continue** - After approval, merge PR and mark todo as `completed`
+10. **Next Task** - Wait for explicit approval before starting next task
+
+This ensures each feature gets proper review, maintains clean git history, and allows for safer rollbacks if needed.
 
 ## Architecture
 
