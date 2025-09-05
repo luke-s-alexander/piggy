@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import AddAccountForm from '../components/AddAccountForm'
 
 type AccountView = 'list' | 'add' | 'edit'
 
@@ -11,6 +12,10 @@ export default function Accounts() {
     setSelectedAccountId(null)
   }
 
+  const handleAddAccountSuccess = () => {
+    setCurrentView('list')
+    // In a real app, you might want to refresh the account list here
+  }
 
   const handleBackToList = () => {
     setCurrentView('list')
@@ -64,10 +69,10 @@ export default function Accounts() {
 
         {currentView === 'add' && (
           <div className="p-6">
-            <p className="text-gray-600 mb-4">Add a new financial account.</p>
-            <div className="text-sm text-gray-500">
-              Add account form will be implemented next.
-            </div>
+            <AddAccountForm 
+              onCancel={handleBackToList}
+              onSuccess={handleAddAccountSuccess}
+            />
           </div>
         )}
 
