@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import AddAccountForm from '../components/AddAccountForm'
+import AccountList from '../components/AccountList'
 
 type AccountView = 'list' | 'add' | 'edit'
 
@@ -10,6 +11,11 @@ export default function Accounts() {
   const handleAddAccount = () => {
     setCurrentView('add')
     setSelectedAccountId(null)
+  }
+
+  const handleEditAccount = (accountId: string) => {
+    setCurrentView('edit')
+    setSelectedAccountId(accountId)
   }
 
   const handleAddAccountSuccess = () => {
@@ -60,10 +66,7 @@ export default function Accounts() {
       <div className="bg-white rounded-lg shadow">
         {currentView === 'list' && (
           <div className="p-6">
-            <p className="text-gray-600 mb-4">Your financial accounts will be displayed here.</p>
-            <div className="text-sm text-gray-500">
-              Account list component will be implemented next.
-            </div>
+            <AccountList onEditAccount={handleEditAccount} />
           </div>
         )}
 
