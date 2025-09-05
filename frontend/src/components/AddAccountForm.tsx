@@ -23,6 +23,9 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
     is_active: true
   })
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+
   useEffect(() => {
     fetchAccountTypes()
   }, [])
@@ -44,20 +47,110 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
     }
   }
 
+  const validateField = (name: string, value: string | boolean) => {
+    const errors: Record<string, string> = {}
+
+    switch (name) {
+      case 'name':
+        if (typeof value === 'string') {
+          if (!value.trim()) {
+            errors.name = 'Account name is required'
+          } else if (value.trim().length < 2) {
+            errors.name = 'Account name must be at least 2 characters'
+          } else if (value.trim().length > 100) {
+            errors.name = 'Account name must be less than 100 characters'
+          }
+        }
+        break
+      
+      case 'account_type_id':
+        if (typeof value === 'string' && !value.trim()) {
+          errors.account_type_id = 'Please select an account type'
+        }
+        break
+
+      case 'balance':
+        if (typeof value === 'string' && value.trim()) {
+          const numValue = parseFloat(value)
+          if (isNaN(numValue)) {
+            errors.balance = 'Balance must be a valid number'
+          } else if (numValue < -999999999.99 || numValue > 999999999.99) {
+            errors.balance = 'Balance must be between -999,999,999.99 and 999,999,999.99'
+          }
+        }
+        break
+
+      case 'institution':
+        if (typeof value === 'string' && value.trim() && value.trim().length > 100) {
+          errors.institution = 'Institution name must be less than 100 characters'
+        }
+        break
+
+      case 'account_number':
+        if (typeof value === 'string' && value.trim()) {
+          if (!/^\d{0,4}$/.test(value.trim())) {
+            errors.account_number = 'Account number must be up to 4 digits only'
+          }
+        }
+        break
+    }
+
+    return errors
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
+    const fieldValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: fieldValue
     }))
+
+    // Validate field if it's been touched
+    if (touched[name]) {
+      const fieldValidationErrors = validateField(name, fieldValue)
+      setFieldErrors(prev => ({
+        ...prev,
+        ...fieldValidationErrors,
+        ...(Object.keys(fieldValidationErrors).length === 0 ? { [name]: '' } : {})
+      }))
+    }
+  }
+
+  const handleFieldBlur = (fieldName: string) => {
+    setTouched(prev => ({ ...prev, [fieldName]: true }))
+    const fieldValue = formData[fieldName as keyof AccountCreate]
+    const fieldValidationErrors = validateField(fieldName, fieldValue)
+    setFieldErrors(prev => ({
+      ...prev,
+      ...fieldValidationErrors,
+      ...(Object.keys(fieldValidationErrors).length === 0 ? { [fieldName]: '' } : {})
+    }))
+  }
+
+  const validateAllFields = () => {
+    const allErrors: Record<string, string> = {}
+    
+    // Validate all fields
+    Object.keys(formData).forEach(fieldName => {
+      const fieldValue = formData[fieldName as keyof AccountCreate]
+      const fieldErrors = validateField(fieldName, fieldValue)
+      Object.assign(allErrors, fieldErrors)
+    })
+
+    setFieldErrors(allErrors)
+    setTouched(Object.keys(formData).reduce((acc, key) => ({ ...acc, [key]: true }), {}))
+    
+    return Object.keys(allErrors).filter(key => allErrors[key]).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.name.trim() || !formData.account_type_id) {
-      setError('Please fill in all required fields')
+    // Validate all fields
+    if (!validateAllFields()) {
+      setError('Please fix the validation errors above')
       return
     }
 
@@ -79,7 +172,17 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
+        
+        // Handle structured validation errors
+        if (response.status === 422 && errorData.detail?.errors) {
+          const validationErrors = errorData.detail.errors
+          setError(`Validation failed: ${validationErrors.join(', ')}`)
+        } else if (errorData.detail) {
+          setError(typeof errorData.detail === 'string' ? errorData.detail : 'An error occurred')
+        } else {
+          setError(`HTTP error! status: ${response.status}`)
+        }
+        return
       }
 
       // Reset form on success
@@ -177,10 +280,19 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
             name="name"
             value={formData.name}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            onBlur={() => handleFieldBlur('name')}
+            className={clsx(
+              "w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors",
+              fieldErrors.name && touched.name
+                ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+            )}
             placeholder="e.g., My Primary Checking"
             required
           />
+          {fieldErrors.name && touched.name && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.name}</p>
+          )}
         </div>
 
         <div className="md:col-span-2">
@@ -192,7 +304,13 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
             name="account_type_id"
             value={formData.account_type_id}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            onBlur={() => handleFieldBlur('account_type_id')}
+            className={clsx(
+              "w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors",
+              fieldErrors.account_type_id && touched.account_type_id
+                ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+            )}
             required
           >
             <option value="">Select an account type...</option>
@@ -202,6 +320,9 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
               </option>
             ))}
           </select>
+          {fieldErrors.account_type_id && touched.account_type_id && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.account_type_id}</p>
+          )}
         </div>
 
         <div>
@@ -216,11 +337,20 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
               name="balance"
               value={formData.balance}
               onChange={handleInputChange}
+              onBlur={() => handleFieldBlur('balance')}
               step="0.01"
-              className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={clsx(
+                "w-full pl-8 pr-3 py-2 border rounded-lg focus:ring-2 transition-colors",
+                fieldErrors.balance && touched.balance
+                  ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                  : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+              )}
               placeholder={getBalancePlaceholder()}
             />
           </div>
+          {fieldErrors.balance && touched.balance && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.balance}</p>
+          )}
           {getBalanceHelpText() && (
             <p className="text-xs text-gray-600 mt-1">
               {getBalanceHelpText()}
@@ -256,9 +386,18 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
             name="institution"
             value={formData.institution}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            onBlur={() => handleFieldBlur('institution')}
+            className={clsx(
+              "w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors",
+              fieldErrors.institution && touched.institution
+                ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+            )}
             placeholder="e.g., TD Bank, RBC"
           />
+          {fieldErrors.institution && touched.institution && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.institution}</p>
+          )}
         </div>
 
         <div>
@@ -271,11 +410,20 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
             name="account_number"
             value={formData.account_number}
             onChange={handleInputChange}
+            onBlur={() => handleFieldBlur('account_number')}
             maxLength={4}
             pattern="[0-9]*"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={clsx(
+              "w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors",
+              fieldErrors.account_number && touched.account_number
+                ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+            )}
             placeholder="1234"
           />
+          {fieldErrors.account_number && touched.account_number && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.account_number}</p>
+          )}
         </div>
       </div>
 
