@@ -6,6 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Piggy is a personal finance web application for tracking spending, income, and net worth with AI-powered transaction categorization. The project follows a monorepo structure with React TypeScript frontend and Python FastAPI backend using DuckDB for analytical queries.
 
+## Workflow
+- Always use a todo list and solve sequentially
+
 ## Architecture
 
 ### Tech Stack

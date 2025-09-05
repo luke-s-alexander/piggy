@@ -11,6 +11,8 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from app.core.database import Base
 from app.core.config import settings
+# Import all models to ensure they are registered with Base metadata
+from app.models import AccountType, Category, Account, Transaction
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
