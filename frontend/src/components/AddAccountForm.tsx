@@ -117,6 +117,28 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
     }
   }
 
+  const getSelectedAccountType = () => {
+    return accountTypes.find(type => type.id === formData.account_type_id)
+  }
+
+  const getBalancePlaceholder = () => {
+    const selectedType = getSelectedAccountType()
+    if (selectedType?.category === 'LIABILITY') {
+      return '-1000.00' // Show negative example for liabilities
+    }
+    return '1000.00' // Show positive example for assets
+  }
+
+  const getBalanceHelpText = () => {
+    const selectedType = getSelectedAccountType()
+    if (selectedType?.category === 'LIABILITY') {
+      return 'Enter negative amount for money owed (e.g., -1500.00 for credit card debt)'
+    } else if (selectedType?.category === 'ASSET') {
+      return 'Enter positive amount for money owned (e.g., 2500.00 for checking balance)'
+    }
+    return null
+  }
+
   if (loadingTypes) {
     return (
       <div className="animate-pulse">
@@ -195,11 +217,15 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
               value={formData.balance}
               onChange={handleInputChange}
               step="0.01"
-              min="0"
               className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0.00"
+              placeholder={getBalancePlaceholder()}
             />
           </div>
+          {getBalanceHelpText() && (
+            <p className="text-xs text-gray-600 mt-1">
+              {getBalanceHelpText()}
+            </p>
+          )}
         </div>
 
         <div>
