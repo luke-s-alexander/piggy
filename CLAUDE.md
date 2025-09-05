@@ -11,6 +11,13 @@ Piggy is a personal finance web application for tracking spending, income, and n
 - Complete one task at a time
 - **ALWAYS wait for explicit user approval before starting the next task**
 
+## Code Review Process
+Before reviewing:
+1. Read PROJECT_PLAN.md for current phase context
+2. Check if build/lint commands pass
+3. Verify API contracts match backend schemas
+4. Keep comments concise. Focus on improvements. You don't need to elaborate on what is good about each PR/commit. 
+
 ### Task-Based Pull Request Workflow
 Each individual task should follow this process:
 1. **Start Task** - Mark todo item as `in_progress`

@@ -4,16 +4,17 @@ import type { Account } from '../types/account'
 
 interface AccountListProps {
   onEditAccount: (accountId: string) => void
+  refreshTrigger?: number
 }
 
-export default function AccountList({ onEditAccount }: AccountListProps) {
+export default function AccountList({ onEditAccount, refreshTrigger }: AccountListProps) {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAccounts()
-  }, [])
+  }, [refreshTrigger])
 
   const fetchAccounts = async () => {
     try {
