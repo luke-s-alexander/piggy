@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import clsx from 'clsx'
 import type { AccountType, Account, AccountUpdate } from '../types/account'
 
@@ -25,11 +25,6 @@ export default function EditAccountForm({ accountId, onCancel, onSuccess }: Edit
     is_active: true
   })
 
-  useEffect(() => {
-    fetchAccountTypes()
-    fetchAccount()
-  }, [accountId])
-
   const fetchAccountTypes = async () => {
     try {
       setLoadingTypes(true)
@@ -47,7 +42,7 @@ export default function EditAccountForm({ accountId, onCancel, onSuccess }: Edit
     }
   }
 
-  const fetchAccount = async () => {
+  const fetchAccount = useCallback(async () => {
     try {
       setLoadingAccount(true)
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -72,7 +67,12 @@ export default function EditAccountForm({ accountId, onCancel, onSuccess }: Edit
     } finally {
       setLoadingAccount(false)
     }
-  }
+  }, [accountId])
+
+  useEffect(() => {
+    fetchAccountTypes()
+    fetchAccount()
+  }, [fetchAccount])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
@@ -103,7 +103,7 @@ export default function EditAccountForm({ accountId, onCancel, onSuccess }: Edit
         },
         body: JSON.stringify({
           ...formData,
-          balance: formData.balance ? parseFloat(formData.balance).toString() : undefined
+          balance: formData.balance ? Number(parseFloat(formData.balance).toFixed(2)).toString() : undefined
         })
       })
 
