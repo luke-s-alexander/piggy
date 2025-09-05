@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import AddAccountForm from '../components/AddAccountForm'
+import EditAccountForm from '../components/EditAccountForm'
 import AccountList from '../components/AccountList'
 
 type AccountView = 'list' | 'add' | 'edit'
@@ -21,6 +22,11 @@ export default function Accounts() {
   const handleAddAccountSuccess = () => {
     setCurrentView('list')
     // In a real app, you might want to refresh the account list here
+  }
+
+  const handleEditAccountSuccess = () => {
+    setCurrentView('list')
+    setSelectedAccountId(null)
   }
 
   const handleBackToList = () => {
@@ -79,12 +85,13 @@ export default function Accounts() {
           </div>
         )}
 
-        {currentView === 'edit' && (
+        {currentView === 'edit' && selectedAccountId && (
           <div className="p-6">
-            <p className="text-gray-600 mb-4">Edit account details.</p>
-            <div className="text-sm text-gray-500">
-              Edit account form will be implemented next. Selected ID: {selectedAccountId}
-            </div>
+            <EditAccountForm
+              accountId={selectedAccountId}
+              onCancel={handleBackToList}
+              onSuccess={handleEditAccountSuccess}
+            />
           </div>
         )}
       </div>
