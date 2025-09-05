@@ -82,6 +82,17 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
         throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
       }
 
+      // Reset form on success
+      setFormData({
+        name: '',
+        account_type_id: '',
+        balance: '0.00',
+        institution: '',
+        account_number: '',
+        currency: 'CAD',
+        is_active: true
+      })
+
       onSuccess()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account')
