@@ -63,7 +63,7 @@ export default function TransactionList({ onTransactionChange }: TransactionList
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
+    return new Date(dateString + 'T00:00:00').toDateString()
   }
 
   if (loading) {
