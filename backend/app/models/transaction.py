@@ -11,7 +11,7 @@ class Transaction(Base):
     category_id = Column(String, ForeignKey("categories.id"), nullable=False)
     amount = Column(Numeric(12, 2), nullable=False)
     description = Column(String, nullable=False)
-    date = Column(Date, nullable=False)
+    transaction_date = Column(Date, nullable=False)
     type = Column(String, nullable=False)  # "INCOME" or "EXPENSE"
     
     # AI categorization fields (for Phase 5)

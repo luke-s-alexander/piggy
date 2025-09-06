@@ -20,7 +20,7 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
     category_id: '',
     amount: '',
     description: '',
-    date: new Date().toISOString().split('T')[0], // Today's date
+    transaction_date: new Date().toISOString().split('T')[0], // Today's date
     type: 'EXPENSE'
   })
 
@@ -102,9 +102,9 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
         }
         break
 
-      case 'date':
+      case 'transaction_date':
         if (!value) {
-          errors.date = 'Date is required'
+          errors.transaction_date = 'Date is required'
         } else {
           const selectedDate = new Date(value)
           const today = new Date()
@@ -112,9 +112,9 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
           const oneYearForward = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate())
           
           if (selectedDate < oneYearAgo) {
-            errors.date = 'Date cannot be more than a year ago'
+            errors.transaction_date = 'Date cannot be more than a year ago'
           } else if (selectedDate > oneYearForward) {
-            errors.date = 'Date cannot be more than a year in the future'
+            errors.transaction_date = 'Date cannot be more than a year in the future'
           }
         }
         break
@@ -229,7 +229,7 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
         category_id: '',
         amount: '',
         description: '',
-        date: new Date().toISOString().split('T')[0],
+        transaction_date: new Date().toISOString().split('T')[0],
         type: 'EXPENSE'
       })
 
@@ -342,26 +342,26 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
         </div>
 
         <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="transaction_date" className="block text-sm font-medium text-gray-700 mb-2">
             Date *
           </label>
           <input
             type="date"
-            id="date"
-            name="date"
-            value={formData.date}
+            id="transaction_date"
+            name="transaction_date"
+            value={formData.transaction_date}
             onChange={handleInputChange}
-            onBlur={() => handleFieldBlur('date')}
+            onBlur={() => handleFieldBlur('transaction_date')}
             className={clsx(
               "w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors",
-              fieldErrors.date && touched.date
+              fieldErrors.transaction_date && touched.transaction_date
                 ? "border-red-300 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
             )}
             required
           />
-          {fieldErrors.date && touched.date && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.date}</p>
+          {fieldErrors.transaction_date && touched.transaction_date && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.transaction_date}</p>
           )}
         </div>
 

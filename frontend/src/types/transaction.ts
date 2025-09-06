@@ -13,7 +13,7 @@ export interface Transaction {
   category_id: string
   amount: string
   description: string
-  date: string
+  transaction_date: string
   type: 'INCOME' | 'EXPENSE'
   ai_category_id?: string
   ai_confidence?: number
@@ -39,7 +39,7 @@ export interface TransactionCreate {
   category_id: string
   amount: string
   description: string
-  date: string
+  transaction_date: string
   type: 'INCOME' | 'EXPENSE'
 }
 
@@ -48,6 +48,6 @@ export interface TransactionUpdate {
   category_id?: string
   amount?: string
   description?: string
-  date?: string
+  transaction_date?: string
   type?: 'INCOME' | 'EXPENSE'
 }

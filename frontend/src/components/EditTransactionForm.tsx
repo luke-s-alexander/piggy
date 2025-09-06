@@ -24,7 +24,7 @@ export default function EditTransactionForm({ transaction, onCancel, onSuccess, 
     category_id: transaction.category_id,
     amount: transaction.amount,
     description: transaction.description,
-    date: transaction.date,
+    transaction_date: transaction.transaction_date,
     type: transaction.type
   })
 
@@ -107,13 +107,13 @@ export default function EditTransactionForm({ transaction, onCancel, onSuccess, 
         }
         break
 
-      case 'date':
+      case 'transaction_date':
         if (!value?.trim()) {
-          errors.date = 'Date is required'
+          errors.transaction_date = 'Date is required'
         } else {
           const dateValue = new Date(value)
           if (isNaN(dateValue.getTime())) {
-            errors.date = 'Please enter a valid date'
+            errors.transaction_date = 'Please enter a valid date'
           }
         }
         break
@@ -189,7 +189,7 @@ export default function EditTransactionForm({ transaction, onCancel, onSuccess, 
       if (formData.category_id !== transaction.category_id) updateData.category_id = formData.category_id  
       if (formData.amount !== transaction.amount) updateData.amount = parseFloat(formData.amount || '0').toString()
       if (formData.description !== transaction.description) updateData.description = formData.description
-      if (formData.date !== transaction.date) updateData.date = formData.date
+      if (formData.transaction_date !== transaction.transaction_date) updateData.transaction_date = formData.transaction_date
       if (formData.type !== transaction.type) updateData.type = formData.type
       
       const response = await fetch(`${apiBaseUrl}/api/v1/transactions/${transaction.id}`, {
@@ -313,26 +313,26 @@ export default function EditTransactionForm({ transaction, onCancel, onSuccess, 
         </div>
 
         <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="transaction_date" className="block text-sm font-medium text-gray-700 mb-2">
             Date *
           </label>
           <input
             type="date"
-            id="date"
-            name="date"
-            value={formData.date}
+            id="transaction_date"
+            name="transaction_date"
+            value={formData.transaction_date}
             onChange={handleInputChange}
-            onBlur={() => handleFieldBlur('date')}
+            onBlur={() => handleFieldBlur('transaction_date')}
             className={clsx(
               "w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors",
-              fieldErrors.date && touched.date
+              fieldErrors.transaction_date && touched.transaction_date
                 ? "border-red-300 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
             )}
             required
           />
-          {fieldErrors.date && touched.date && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.date}</p>
+          {fieldErrors.transaction_date && touched.transaction_date && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.transaction_date}</p>
           )}
         </div>
 

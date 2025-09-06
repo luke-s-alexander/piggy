@@ -10,7 +10,7 @@ class TransactionBase(BaseModel):
     category_id: str
     amount: Decimal = Field(decimal_places=2)
     description: str
-    date: date
+    transaction_date: date
     type: str  # "INCOME" or "EXPENSE"
 
 class TransactionCreate(TransactionBase):
@@ -21,7 +21,7 @@ class TransactionUpdate(BaseModel):
     category_id: Optional[str] = None
     amount: Optional[Decimal] = None
     description: Optional[str] = None
-    date: Optional[date] = None
+    transaction_date: Optional[date] = None
     type: Optional[str] = None
 
 class Transaction(TransactionBase):

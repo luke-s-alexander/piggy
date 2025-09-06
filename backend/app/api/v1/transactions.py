@@ -27,13 +27,13 @@ def get_transactions(
     if category_id:
         query = query.filter(TransactionModel.category_id == category_id)
     if start_date:
-        query = query.filter(TransactionModel.date >= start_date)
+        query = query.filter(TransactionModel.transaction_date >= start_date)
     if end_date:
-        query = query.filter(TransactionModel.date <= end_date)
+        query = query.filter(TransactionModel.transaction_date <= end_date)
     if transaction_type:
         query = query.filter(TransactionModel.type == transaction_type)
     
-    return query.order_by(TransactionModel.date.desc()).all()
+    return query.order_by(TransactionModel.transaction_date.desc()).all()
 
 @router.get("/{transaction_id}", response_model=Transaction)
 def get_transaction(transaction_id: str, db: Session = Depends(get_db)):
@@ -67,12 +67,28 @@ def update_transaction(
         raise HTTPException(status_code=404, detail="Transaction not found")
     
     update_data = transaction_update.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(transaction, field, value)
     
-    db.commit()
-    db.refresh(transaction)
-    return transaction
+    # Only allow specific fields to be updated to avoid SQLAlchemy/DuckDB issues
+    allowed_fields = {
+        'account_id', 'category_id', 'amount', 'description', 'transaction_date', 'type',
+        'ai_category_id', 'ai_confidence', 'is_ai_categorized', 'user_corrected'
+    }
+    
+    try:
+        # Only update allowed fields
+        for field, value in update_data.items():
+            if field in allowed_fields:
+                setattr(transaction, field, value)
+        
+        db.commit()
+        db.refresh(transaction)
+        return transaction
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update transaction: {str(e)}"
+        )
 
 @router.delete("/{transaction_id}")
 def delete_transaction(transaction_id: str, db: Session = Depends(get_db)):
