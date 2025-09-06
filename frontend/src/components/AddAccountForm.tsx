@@ -121,7 +121,7 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
   const handleFieldBlur = (fieldName: string) => {
     setTouched(prev => ({ ...prev, [fieldName]: true }))
     const fieldValue = formData[fieldName as keyof AccountCreate]
-    const fieldValidationErrors = validateField(fieldName, fieldValue)
+    const fieldValidationErrors = validateField(fieldName, fieldValue ?? '')
     setFieldErrors(prev => ({
       ...prev,
       ...fieldValidationErrors,
@@ -135,7 +135,7 @@ export default function AddAccountForm({ onCancel, onSuccess }: AddAccountFormPr
     // Validate all fields
     Object.keys(formData).forEach(fieldName => {
       const fieldValue = formData[fieldName as keyof AccountCreate]
-      const fieldErrors = validateField(fieldName, fieldValue)
+      const fieldErrors = validateField(fieldName, fieldValue ?? '')
       Object.assign(allErrors, fieldErrors)
     })
 
