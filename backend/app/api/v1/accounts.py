@@ -6,8 +6,8 @@ from typing import List
 from decimal import Decimal, InvalidOperation
 
 from app.core.database import get_db
-from app.models import Account as AccountModel
-from app.schemas import Account, AccountCreate, AccountUpdate
+from app.models import Account as AccountModel, BalanceHistory as BalanceHistoryModel
+from app.schemas import Account, AccountCreate, AccountUpdate, BalanceHistory, BalanceHistoryCreate
 
 router = APIRouter()
 
@@ -154,8 +154,26 @@ def update_account(
     
     try:
         update_data = account_update.dict(exclude_unset=True)
+        
+        # Track balance changes for history
+        old_balance = account.balance
+        
         for field, value in update_data.items():
             setattr(account, field, value)
+        
+        # Create balance history record if balance changed
+        if 'balance' in update_data and account.balance != old_balance:
+            change_amount = account.balance - old_balance
+            balance_history = BalanceHistoryModel(
+                id=str(uuid.uuid4()),
+                account_id=account_id,
+                previous_balance=old_balance,
+                new_balance=account.balance,
+                change_amount=change_amount,
+                change_reason="manual_update",
+                notes="Balance updated via API"
+            )
+            db.add(balance_history)
         
         db.commit()
         db.refresh(account)
@@ -233,3 +251,16 @@ def reactivate_account(account_id: str, db: Session = Depends(get_db)):
             status_code=500,
             detail="An unexpected error occurred while reactivating the account"
         )
+
+@router.get("/{account_id}/balance-history", response_model=List[BalanceHistory])
+def get_account_balance_history(account_id: str, db: Session = Depends(get_db)):
+    """Get balance history for a specific account"""
+    account = db.query(AccountModel).filter(AccountModel.id == account_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    
+    balance_history = db.query(BalanceHistoryModel).filter(
+        BalanceHistoryModel.account_id == account_id
+    ).order_by(BalanceHistoryModel.created_at.desc()).all()
+    
+    return balance_history

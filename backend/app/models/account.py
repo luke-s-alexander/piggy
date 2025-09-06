@@ -20,3 +20,4 @@ class Account(Base):
     # Relationships
     account_type = relationship("AccountType", back_populates="accounts")
     transactions = relationship("Transaction", back_populates="account")
+    balance_history = relationship("BalanceHistory", back_populates="account")

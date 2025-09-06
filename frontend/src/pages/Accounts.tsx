@@ -2,12 +2,14 @@ import { useState } from 'react'
 import AddAccountForm from '../components/AddAccountForm'
 import EditAccountForm from '../components/EditAccountForm'
 import AccountList from '../components/AccountList'
+import AccountSummary from '../components/AccountSummary'
 
 type AccountView = 'list' | 'add' | 'edit'
 
 export default function Accounts() {
   const [currentView, setCurrentView] = useState<AccountView>('list')
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
 
   const handleAddAccount = () => {
     setCurrentView('add')
@@ -21,12 +23,13 @@ export default function Accounts() {
 
   const handleAddAccountSuccess = () => {
     setCurrentView('list')
-    // In a real app, you might want to refresh the account list here
+    setRefreshTrigger(prev => prev + 1)
   }
 
   const handleEditAccountSuccess = () => {
     setCurrentView('list')
     setSelectedAccountId(null)
+    setRefreshTrigger(prev => prev + 1)
   }
 
   const handleBackToList = () => {
@@ -69,10 +72,14 @@ export default function Accounts() {
         )}
       </div>
 
+      {currentView === 'list' && (
+        <AccountSummary refreshTrigger={refreshTrigger} />
+      )}
+
       <div className="bg-white rounded-lg shadow">
         {currentView === 'list' && (
           <div className="p-6">
-            <AccountList onEditAccount={handleEditAccount} />
+            <AccountList onEditAccount={handleEditAccount} refreshTrigger={refreshTrigger} />
           </div>
         )}
 
