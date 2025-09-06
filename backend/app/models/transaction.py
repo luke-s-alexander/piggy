@@ -21,7 +21,7 @@ class Transaction(Base):
     user_corrected = Column(Boolean, nullable=False, default=False)  # For ML training
     
     created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    updated_at = Column(DateTime, server_default=func.now())
     
     # Relationships
     account = relationship("Account", back_populates="transactions")
