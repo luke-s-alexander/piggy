@@ -183,15 +183,21 @@ export default function EditTransactionForm({ transaction, onCancel, onSuccess, 
 
     try {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+      // Only send fields that are different from the original transaction
+      const updateData: any = {}
+      if (formData.account_id !== transaction.account_id) updateData.account_id = formData.account_id
+      if (formData.category_id !== transaction.category_id) updateData.category_id = formData.category_id  
+      if (formData.amount !== transaction.amount) updateData.amount = parseFloat(formData.amount || '0').toString()
+      if (formData.description !== transaction.description) updateData.description = formData.description
+      if (formData.date !== transaction.date) updateData.date = formData.date
+      if (formData.type !== transaction.type) updateData.type = formData.type
+      
       const response = await fetch(`${apiBaseUrl}/api/v1/transactions/${transaction.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          ...formData,
-          amount: parseFloat(formData.amount || '0').toString()
-        })
+        body: JSON.stringify(updateData)
       })
 
       if (!response.ok) {
