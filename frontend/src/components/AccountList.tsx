@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import type { Account } from '../types/account'
+import ConfirmationDialog from './ConfirmationDialog'
 
 interface AccountListProps {
   onEditAccount: (accountId: string) => void
@@ -11,6 +12,8 @@ export default function AccountList({ onEditAccount, refreshTrigger }: AccountLi
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [accountToAction, setAccountToAction] = useState<{ id: string; name: string; action: 'deactivate' | 'reactivate' } | null>(null)
 
   useEffect(() => {
     fetchAccounts()
@@ -22,7 +25,7 @@ export default function AccountList({ onEditAccount, refreshTrigger }: AccountLi
       setError(null)
       
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiBaseUrl}/api/v1/accounts/`)
+      const response = await fetch(`${apiBaseUrl}/api/v1/accounts/?include_inactive=true`)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
@@ -34,6 +37,65 @@ export default function AccountList({ onEditAccount, refreshTrigger }: AccountLi
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDeactivateAccount = async (accountId: string) => {
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiBaseUrl}/api/v1/accounts/${accountId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
+      }
+      
+      await fetchAccounts()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to deactivate account')
+    }
+  }
+
+  const handleReactivateAccount = async (accountId: string) => {
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiBaseUrl}/api/v1/accounts/${accountId}/reactivate`, {
+        method: 'POST'
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
+      }
+      
+      await fetchAccounts()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reactivate account')
+    }
+  }
+
+  const initiateAccountAction = (account: Account, action: 'deactivate' | 'reactivate') => {
+    setAccountToAction({ id: account.id, name: account.name, action })
+    setShowConfirmDialog(true)
+  }
+
+  const confirmAccountAction = async () => {
+    if (!accountToAction) return
+
+    if (accountToAction.action === 'deactivate') {
+      await handleDeactivateAccount(accountToAction.id)
+    } else {
+      await handleReactivateAccount(accountToAction.id)
+    }
+
+    setShowConfirmDialog(false)
+    setAccountToAction(null)
+  }
+
+  const cancelAccountAction = () => {
+    setShowConfirmDialog(false)
+    setAccountToAction(null)
   }
 
   const formatCurrency = (amount: string, currency: string = 'CAD') => {
@@ -173,20 +235,60 @@ export default function AccountList({ onEditAccount, refreshTrigger }: AccountLi
                 </div>
               </div>
 
-              <button
-                onClick={() => onEditAccount(account.id)}
-                className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                title="Edit account"
-                aria-label={`Edit ${account.name} account`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onEditAccount(account.id)}
+                  className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Edit account"
+                  aria-label={`Edit ${account.name} account`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+
+                {account.is_active ? (
+                  <button
+                    onClick={() => initiateAccountAction(account, 'deactivate')}
+                    className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 transition-colors"
+                    title="Deactivate account"
+                    aria-label={`Deactivate ${account.name} account`}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => initiateAccountAction(account, 'reactivate')}
+                    className="flex-shrink-0 p-2 text-gray-400 hover:text-green-600 transition-colors"
+                    title="Reactivate account"
+                    aria-label={`Reactivate ${account.name} account`}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       ))}
+      
+      <ConfirmationDialog
+        isOpen={showConfirmDialog}
+        onClose={cancelAccountAction}
+        onConfirm={confirmAccountAction}
+        title={accountToAction?.action === 'deactivate' ? 'Deactivate Account' : 'Reactivate Account'}
+        message={
+          accountToAction?.action === 'deactivate'
+            ? `Are you sure you want to deactivate "${accountToAction?.name}"? The account will be hidden from your main view but can be reactivated later.`
+            : `Are you sure you want to reactivate "${accountToAction?.name}"? The account will be visible in your main view again.`
+        }
+        confirmText={accountToAction?.action === 'deactivate' ? 'Deactivate' : 'Reactivate'}
+        variant={accountToAction?.action === 'deactivate' ? 'warning' : 'info'}
+      />
     </div>
   )
 }
