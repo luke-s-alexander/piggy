@@ -195,17 +195,24 @@ export default function EditTransactionForm({ transaction, onCancel, onSuccess, 
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        let errorMessage = `HTTP error! status: ${response.status}`
         
-        // Handle structured validation errors
-        if (response.status === 422 && errorData.detail?.errors) {
-          const validationErrors = errorData.detail.errors
-          setError(`Validation failed: ${validationErrors.join(', ')}`)
-        } else if (errorData.detail) {
-          setError(typeof errorData.detail === 'string' ? errorData.detail : 'An error occurred')
-        } else {
-          setError(`HTTP error! status: ${response.status}`)
+        try {
+          const errorData = await response.json()
+          console.error('Transaction update error:', errorData)
+          
+          // Handle structured validation errors
+          if (response.status === 422 && errorData.detail?.errors) {
+            const validationErrors = errorData.detail.errors
+            errorMessage = `Validation failed: ${validationErrors.join(', ')}`
+          } else if (errorData.detail) {
+            errorMessage = typeof errorData.detail === 'string' ? errorData.detail : JSON.stringify(errorData.detail)
+          }
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError)
         }
+        
+        setError(errorMessage)
         return
       }
 
