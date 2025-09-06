@@ -6,7 +6,7 @@
 🚀 **Phase 1 Complete**: Development environment fully set up and operational  
 🚀 **Phase 2 Complete**: Core Data Layer - Database models, API routes, and migrations implemented  
 🚀 **Phase 3 Complete**: Account Management - Enhanced UI, validation, soft delete, and user interactions
-🔧 **Next**: Phase 4 - Transaction Management (transaction entry forms, listing, and category management)
+🔧 **Current**: Phase 4 - Transaction Management (transaction entry forms, listing, and category management)
 
 ---
 
@@ -494,9 +494,6 @@ ORDER BY h.symbol, hs.date;
 - Database queries showing proper ORM relationships and data persistence
 - FastAPI automatic documentation available at `/docs` endpoint
 
-**Demo Capability:** ✅ VERIFIED
-Add a bank account, create a transaction, verify data persists across server restarts.
-
 **Defer to Later Phases:**
 - Complex holdings/snapshots models → Phase 7
 - AI categorization fields → Phase 5  
@@ -520,12 +517,10 @@ Add a bank account, create a transaction, verify data persists across server res
 - Balance history tracking integration for account updates
 - Enhanced API validation with detailed error messages
 
-**Demo Capability:** ✅ VERIFIED
-Full account lifecycle management with validation, deactivation, and reactivation.
 
 ### Phase 4: Transaction Management (Week 3)
 **Current Phase** - Detailed Todo List:
-1. [ ] Build transaction entry form with account and category selection
+1. [X] Build transaction entry form with account and category selection
 2. [ ] Add transaction editing functionality with validation and transaction deletion with confirmation dialog
 3. [ ] Create category management interface for adding/editing/deleting categories
 4. [ ] Implement transaction listing page with sorting and filtering and search functionality
@@ -751,5 +746,5 @@ open http://localhost:8000/docs
 
 ---
 
-*Last updated: September 4, 2025*
+*Last updated: September 6, 2025*
 *This document will be updated as the project evolves*
