@@ -524,10 +524,12 @@ Add a bank account, create a transaction, verify data persists across server res
 Full account lifecycle management with validation, deactivation, and reactivation.
 
 ### Phase 4: Transaction Management (Week 3)
-- [ ] Build transaction entry forms
-- [ ] Implement transaction listing with filters
-- [ ] Add transaction editing and deletion
-- [ ] Create category management
+**Current Phase** - Detailed Todo List:
+1. [ ] Build transaction entry form with account and category selection
+2. [ ] Add transaction editing functionality with validation and transaction deletion with confirmation dialog
+3. [ ] Create category management interface for adding/editing/deleting categories
+4. [ ] Implement transaction listing page with sorting and filtering and search functionality
+5. [ ] Add transaction summary statistics (total income, expenses, net) and implement transaction type indicators (income vs expense) with visual styling
 
 ### Phase 5: AI Transaction Categorization (Week 3)
 - [ ] Build rule-based categorization engine
