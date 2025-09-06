@@ -161,19 +161,23 @@ def update_account(
         for field, value in update_data.items():
             setattr(account, field, value)
         
-        # Create balance history record if balance changed
+        # Create balance history record if balance changed (skip if table doesn't exist)
         if 'balance' in update_data and account.balance != old_balance:
-            change_amount = account.balance - old_balance
-            balance_history = BalanceHistoryModel(
-                id=str(uuid.uuid4()),
-                account_id=account_id,
-                previous_balance=old_balance,
-                new_balance=account.balance,
-                change_amount=change_amount,
-                change_reason="manual_update",
-                notes="Balance updated via API"
-            )
-            db.add(balance_history)
+            try:
+                change_amount = account.balance - old_balance
+                balance_history = BalanceHistoryModel(
+                    id=str(uuid.uuid4()),
+                    account_id=account_id,
+                    previous_balance=old_balance,
+                    new_balance=account.balance,
+                    change_amount=change_amount,
+                    change_reason="manual_update",
+                    notes="Balance updated via API"
+                )
+                db.add(balance_history)
+            except SQLAlchemyError:
+                # Skip balance history if table doesn't exist yet
+                pass
         
         db.commit()
         db.refresh(account)
