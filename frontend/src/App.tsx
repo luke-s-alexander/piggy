@@ -3,6 +3,7 @@ import Navigation from './components/Navigation'
 import Dashboard from './pages/Dashboard'
 import Accounts from './pages/Accounts'
 import Transactions from './pages/Transactions'
+import Categories from './pages/Categories'
 import Budget from './pages/Budget'
 import Reports from './pages/Reports'
 
@@ -16,6 +17,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/accounts" element={<Accounts />} />
             <Route path="/transactions" element={<Transactions />} />
+            <Route path="/categories" element={<Categories />} />
             <Route path="/budget" element={<Budget />} />
             <Route path="/reports" element={<Reports />} />
           </Routes>

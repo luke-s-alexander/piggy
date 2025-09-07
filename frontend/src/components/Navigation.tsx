@@ -5,6 +5,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: '📊' },
   { name: 'Accounts', href: '/accounts', icon: '🏦' },
   { name: 'Transactions', href: '/transactions', icon: '💳' },
+  { name: 'Categories', href: '/categories', icon: '🏷️' },
   { name: 'Budget', href: '/budget', icon: '💰' },
   { name: 'Reports', href: '/reports', icon: '📈' },
 ]
