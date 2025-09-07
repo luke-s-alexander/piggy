@@ -14,7 +14,7 @@ A personal finance web application for tracking spending, income, and net worth 
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Tailwind CSS + Recharts
-- **Backend**: Python FastAPI + SQLAlchemy + DuckDB
+- **Backend**: Python FastAPI + SQLAlchemy + PostgreSQL
 - **AI/ML**: scikit-learn + spaCy for transaction categorization
 
 ## Quick Start
