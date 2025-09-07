@@ -1,13 +1,23 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
 from app.api.v1.api import api_router
 from app.core.config import settings
+from app.init_db import init_database
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup - Initialize database with seed data
+    init_database()
+    yield
+    # Shutdown - cleanup code would go here if needed
 
 app = FastAPI(
     title="Piggy API", 
     version="0.1.0",
-    description="Personal Finance Management API"
+    description="Personal Finance Management API",
+    lifespan=lifespan
 )
 
 # CORS middleware for frontend development

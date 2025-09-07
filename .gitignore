@@ -55,8 +55,10 @@ yarn-error.log*
 *.db
 *.sqlite
 *.sqlite3
+*.backup
 data/*.db
 data/*.duckdb
+data/*.backup
 
 # Logs
 logs

@@ -11,7 +11,7 @@ class Transaction(Base):
     category_id = Column(String, ForeignKey("categories.id"), nullable=False)
     amount = Column(Numeric(12, 2), nullable=False)
     description = Column(String, nullable=False)
-    date = Column(Date, nullable=False)
+    transaction_date = Column(Date, nullable=False)
     type = Column(String, nullable=False)  # "INCOME" or "EXPENSE"
     
     # AI categorization fields (for Phase 5)
@@ -21,7 +21,7 @@ class Transaction(Base):
     user_corrected = Column(Boolean, nullable=False, default=False)  # For ML training
     
     created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    updated_at = Column(DateTime, server_default=func.now())
     
     # Relationships
     account = relationship("Account", back_populates="transactions")

@@ -15,7 +15,7 @@ class Account(Base):
     currency = Column(String, nullable=False, default="CAD")  # Account currency
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    updated_at = Column(DateTime, server_default=func.now())
     
     # Relationships
     account_type = relationship("AccountType", back_populates="accounts")

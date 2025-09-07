@@ -1,37 +1,41 @@
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import type { Account } from '../types/account'
-import type { Category, TransactionCreate } from '../types/transaction'
+import type { Category, Transaction, TransactionUpdate } from '../types/transaction'
 
-interface AddTransactionFormProps {
+interface EditTransactionFormProps {
+  transaction: Transaction
   onCancel: () => void
   onSuccess: () => void
+  onDelete: () => void
 }
 
-export default function AddTransactionForm({ onCancel, onSuccess }: AddTransactionFormProps) {
+export default function EditTransactionForm({ transaction, onCancel, onSuccess, onDelete }: EditTransactionFormProps) {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   
-  const [formData, setFormData] = useState<TransactionCreate>({
-    account_id: '',
-    category_id: '',
-    amount: '',
-    description: '',
-    transaction_date: new Date().toISOString().split('T')[0], // Today's date
-    type: 'EXPENSE'
+  const [formData, setFormData] = useState<TransactionUpdate>({
+    account_id: transaction.account_id,
+    category_id: transaction.category_id,
+    amount: transaction.amount,
+    description: transaction.description,
+    transaction_date: transaction.transaction_date,
+    type: transaction.type
   })
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    fetchInitialData()
+    fetchAccountsAndCategories()
   }, [])
 
-  const fetchInitialData = async () => {
+  const fetchAccountsAndCategories = async () => {
     try {
       setLoadingData(true)
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -44,13 +48,14 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
       if (!accountsResponse.ok) {
         throw new Error(`Failed to load accounts: ${accountsResponse.status}`)
       }
-      
       if (!categoriesResponse.ok) {
         throw new Error(`Failed to load categories: ${categoriesResponse.status}`)
       }
       
-      const accountsData = await accountsResponse.json()
-      const categoriesData = await categoriesResponse.json()
+      const [accountsData, categoriesData] = await Promise.all([
+        accountsResponse.json(),
+        categoriesResponse.json()
+      ])
       
       setAccounts(accountsData)
       setCategories(categoriesData)
@@ -61,67 +66,55 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
     }
   }
 
-  const validateField = (name: string, value: string) => {
+  const validateField = (name: string, value: string | undefined) => {
     const errors: Record<string, string> = {}
 
     switch (name) {
       case 'account_id':
-        if (!value.trim()) {
+        if (!value?.trim()) {
           errors.account_id = 'Please select an account'
         }
         break
       
       case 'category_id':
-        if (!value.trim()) {
+        if (!value?.trim()) {
           errors.category_id = 'Please select a category'
         }
         break
 
       case 'amount':
-        if (!value.trim()) {
+        if (!value?.trim()) {
           errors.amount = 'Amount is required'
         } else {
           const numValue = parseFloat(value)
           if (isNaN(numValue)) {
             errors.amount = 'Amount must be a valid number'
-          } else if (numValue <= 0) {
-            errors.amount = 'Amount must be greater than zero'
-          } else if (numValue > 999999999.99) {
-            errors.amount = 'Amount must be less than 1,000,000,000'
+          } else if (numValue === 0) {
+            errors.amount = 'Amount cannot be zero'
+          } else if (numValue < -999999999.99 || numValue > 999999999.99) {
+            errors.amount = 'Amount must be between -999,999,999.99 and 999,999,999.99'
           }
         }
         break
 
       case 'description':
-        if (!value.trim()) {
+        if (!value?.trim()) {
           errors.description = 'Description is required'
         } else if (value.trim().length < 2) {
           errors.description = 'Description must be at least 2 characters'
-        } else if (value.trim().length > 255) {
-          errors.description = 'Description must be less than 255 characters'
+        } else if (value.trim().length > 500) {
+          errors.description = 'Description must be less than 500 characters'
         }
         break
 
       case 'transaction_date':
-        if (!value) {
+        if (!value?.trim()) {
           errors.transaction_date = 'Date is required'
         } else {
-          const selectedDate = new Date(value)
-          const today = new Date()
-          const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
-          const oneYearForward = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate())
-          
-          if (selectedDate < oneYearAgo) {
-            errors.transaction_date = 'Date cannot be more than a year ago'
-          } else if (selectedDate > oneYearForward) {
-            errors.transaction_date = 'Date cannot be more than a year in the future'
+          const dateValue = new Date(value)
+          if (isNaN(dateValue.getTime())) {
+            errors.transaction_date = 'Please enter a valid date'
           }
-        }
-        break
-
-      case 'type':
-        if (!value || !['INCOME', 'EXPENSE'].includes(value)) {
-          errors.type = 'Please select a valid transaction type'
         }
         break
     }
@@ -129,7 +122,7 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
     return errors
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     
     setFormData(prev => ({
@@ -146,20 +139,13 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
         ...(Object.keys(fieldValidationErrors).length === 0 ? { [name]: '' } : {})
       }))
     }
-
-    // Auto-filter categories by type when type changes
-    if (name === 'type') {
-      setFormData(prev => ({
-        ...prev,
-        category_id: '' // Reset category selection when type changes
-      }))
-    }
   }
 
   const handleFieldBlur = (fieldName: string) => {
     setTouched(prev => ({ ...prev, [fieldName]: true }))
-    const fieldValue = formData[fieldName as keyof TransactionCreate]
-    const fieldValidationErrors = validateField(fieldName, fieldValue)
+    const fieldValue = formData[fieldName as keyof TransactionUpdate]
+
+    const fieldValidationErrors = validateField(fieldName, fieldValue ?? '')
     setFieldErrors(prev => ({
       ...prev,
       ...fieldValidationErrors,
@@ -172,8 +158,8 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
     
     // Validate all fields
     Object.keys(formData).forEach(fieldName => {
-      const fieldValue = formData[fieldName as keyof TransactionCreate]
-      const fieldErrors = validateField(fieldName, fieldValue)
+      const fieldValue = formData[fieldName as keyof TransactionUpdate]
+      const fieldErrors = validateField(fieldName, fieldValue ?? '')
       Object.assign(allErrors, fieldErrors)
     })
 
@@ -197,56 +183,80 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
 
     try {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiBaseUrl}/api/v1/transactions/`, {
-        method: 'POST',
+      // Only send fields that are different from the original transaction
+      const updateData: Partial<TransactionUpdate> = {}
+      if (formData.account_id !== transaction.account_id) updateData.account_id = formData.account_id
+      if (formData.category_id !== transaction.category_id) updateData.category_id = formData.category_id  
+      if (formData.amount !== transaction.amount) updateData.amount = parseFloat(formData.amount || '0').toString()
+      if (formData.description !== transaction.description) updateData.description = formData.description
+      if (formData.transaction_date !== transaction.transaction_date) updateData.transaction_date = formData.transaction_date
+      if (formData.type !== transaction.type) updateData.type = formData.type
+      
+      const response = await fetch(`${apiBaseUrl}/api/v1/transactions/${transaction.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          ...formData,
-          amount: parseFloat(formData.amount).toString()
-        })
+        body: JSON.stringify(updateData)
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        let errorMessage = `HTTP error! status: ${response.status}`
         
-        // Handle structured validation errors
-        if (response.status === 422 && errorData.detail?.errors) {
-          const validationErrors = errorData.detail.errors
-          setError(`Validation failed: ${validationErrors.join(', ')}`)
-        } else if (errorData.detail) {
-          setError(typeof errorData.detail === 'string' ? errorData.detail : 'An error occurred')
-        } else {
-          setError(`HTTP error! status: ${response.status}`)
+        try {
+          const errorData = await response.json()
+          console.error('Transaction update error:', errorData)
+          
+          // Handle structured validation errors
+          if (response.status === 422 && errorData.detail?.errors) {
+            const validationErrors = errorData.detail.errors
+            errorMessage = `Validation failed: ${validationErrors.join(', ')}`
+          } else if (errorData.detail) {
+            errorMessage = typeof errorData.detail === 'string' ? errorData.detail : JSON.stringify(errorData.detail)
+          }
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError)
         }
+        
+        setError(errorMessage)
         return
       }
 
-      // Reset form on success
-      setFormData({
-        account_id: '',
-        category_id: '',
-        amount: '',
-        description: '',
-        transaction_date: new Date().toISOString().split('T')[0],
-        type: 'EXPENSE'
-      })
-
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create transaction')
+      setError(err instanceof Error ? err.message : 'Failed to update transaction')
     } finally {
       setLoading(false)
     }
   }
 
-  const getTransactionTypeIcon = (type: string) => {
-    return type === 'INCOME' ? '💰' : '💸'
+  const handleDelete = async () => {
+    setDeleting(true)
+    setError(null)
+
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiBaseUrl}/api/v1/transactions/${transaction.id}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(errorData.detail || `Failed to delete transaction: ${response.status}`)
+        return
+      }
+
+      onDelete()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete transaction')
+    } finally {
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+    }
   }
 
-  const getCategoryIcon = (type: string) => {
-    return type === 'INCOME' ? '📈' : '🏷️'
+  const getTransactionTypeIcon = (type: 'INCOME' | 'EXPENSE') => {
+    return type === 'INCOME' ? '💰' : '💸'
   }
 
   const getSelectedAccount = () => {
@@ -294,51 +304,12 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
             name="type"
             value={formData.type}
             onChange={handleInputChange}
-            onBlur={() => handleFieldBlur('type')}
-            className={clsx(
-              "w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors",
-              fieldErrors.type && touched.type
-                ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-            )}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             required
           >
-            <option value="EXPENSE">{getTransactionTypeIcon('EXPENSE')} Expense</option>
             <option value="INCOME">{getTransactionTypeIcon('INCOME')} Income</option>
+            <option value="EXPENSE">{getTransactionTypeIcon('EXPENSE')} Expense</option>
           </select>
-          {fieldErrors.type && touched.type && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.type}</p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
-            Amount *
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-            <input
-              type="number"
-              id="amount"
-              name="amount"
-              value={formData.amount}
-              onChange={handleInputChange}
-              onBlur={() => handleFieldBlur('amount')}
-              step="0.01"
-              min="0.01"
-              className={clsx(
-                "w-full pl-8 pr-3 py-2 border rounded-lg focus:ring-2 transition-colors",
-                fieldErrors.amount && touched.amount
-                  ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                  : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-              )}
-              placeholder="25.00"
-              required
-            />
-          </div>
-          {fieldErrors.amount && touched.amount && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.amount}</p>
-          )}
         </div>
 
         <div>
@@ -384,9 +355,9 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
             required
           >
             <option value="">Select an account...</option>
-            {accounts.filter(account => account.is_active).map((account) => (
+            {accounts.map((account) => (
               <option key={account.id} value={account.id}>
-                {account.name} ({account.account_type?.name}) - ${account.balance}
+                {account.name} (${account.balance})
               </option>
             ))}
           </select>
@@ -400,9 +371,9 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
           )}
         </div>
 
-        <div className="md:col-span-2">
+        <div>
           <label htmlFor="category_id" className="block text-sm font-medium text-gray-700 mb-2">
-            Category * {formData.type && `(${formData.type.toLowerCase()} categories)`}
+            Category *
           </label>
           <select
             id="category_id"
@@ -421,17 +392,41 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
             <option value="">Select a category...</option>
             {getFilteredCategories().map((category) => (
               <option key={category.id} value={category.id}>
-                {getCategoryIcon(category.type)} {category.name}
+                {category.name}
               </option>
             ))}
           </select>
           {fieldErrors.category_id && touched.category_id && (
             <p className="mt-1 text-sm text-red-600">{fieldErrors.category_id}</p>
           )}
-          {getFilteredCategories().length === 0 && formData.type && (
-            <p className="text-xs text-amber-600 mt-1">
-              No {formData.type.toLowerCase()} categories found. You may need to create one first.
-            </p>
+        </div>
+
+        <div>
+          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+            Amount *
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+            <input
+              type="number"
+              id="amount"
+              name="amount"
+              value={formData.amount}
+              onChange={handleInputChange}
+              onBlur={() => handleFieldBlur('amount')}
+              step="0.01"
+              className={clsx(
+                "w-full pl-8 pr-3 py-2 border rounded-lg focus:ring-2 transition-colors",
+                fieldErrors.amount && touched.amount
+                  ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                  : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+              )}
+              placeholder="0.00"
+              required
+            />
+          </div>
+          {fieldErrors.amount && touched.amount && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.amount}</p>
           )}
         </div>
 
@@ -439,20 +434,20 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
           <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
             Description *
           </label>
-          <textarea
+          <input
+            type="text"
             id="description"
             name="description"
             value={formData.description}
             onChange={handleInputChange}
             onBlur={() => handleFieldBlur('description')}
-            rows={3}
             className={clsx(
-              "w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors resize-none",
+              "w-full px-3 py-2 border rounded-lg focus:ring-2 transition-colors",
               fieldErrors.description && touched.description
                 ? "border-red-300 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
             )}
-            placeholder="e.g., Lunch at Pizza Place, Salary deposit, Gas for car"
+            placeholder="e.g., Grocery shopping at Metro"
             required
           />
           {fieldErrors.description && touched.description && (
@@ -461,34 +456,94 @@ export default function AddTransactionForm({ onCancel, onSuccess }: AddTransacti
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 pt-4 border-t">
+      <div className="flex justify-between items-center pt-4 border-t">
         <button
           type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          onClick={() => setShowDeleteConfirm(true)}
+          className="px-4 py-2 text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
         >
-          Cancel
+          Delete Transaction
         </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className={clsx(
-            'px-4 py-2 text-white bg-blue-600 rounded-lg font-medium transition-colors',
-            loading 
-              ? 'opacity-50 cursor-not-allowed' 
-              : 'hover:bg-blue-700'
-          )}
-        >
-          {loading ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              Creating...
-            </div>
-          ) : (
-            `Add ${formData.type === 'INCOME' ? 'Income' : 'Expense'}`
-          )}
-        </button>
+        
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className={clsx(
+              'px-4 py-2 text-white bg-blue-600 rounded-lg font-medium transition-colors',
+              loading 
+                ? 'opacity-50 cursor-not-allowed' 
+                : 'hover:bg-blue-700'
+            )}
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Saving...
+              </div>
+            ) : (
+              'Save Changes'
+            )}
+          </button>
+        </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Delete Transaction</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this transaction? This action cannot be undone.
+            </p>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className={clsx(
+                  'px-4 py-2 text-white bg-red-600 rounded-lg font-medium transition-colors',
+                  deleting 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'hover:bg-red-700'
+                )}
+              >
+                {deleting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Deleting...
+                  </div>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   )
 }
