@@ -184,7 +184,7 @@ export default function EditTransactionForm({ transaction, onCancel, onSuccess, 
     try {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
       // Only send fields that are different from the original transaction
-      const updateData: any = {}
+      const updateData: Partial<TransactionUpdate> = {}
       if (formData.account_id !== transaction.account_id) updateData.account_id = formData.account_id
       if (formData.category_id !== transaction.category_id) updateData.category_id = formData.category_id  
       if (formData.amount !== transaction.amount) updateData.amount = parseFloat(formData.amount || '0').toString()
