@@ -15,12 +15,31 @@ export default function CategoryList({ onCategoryChange }: CategoryListProps) {
     try {
       const response = await fetch('http://localhost:8000/api/v1/categories/')
       if (!response.ok) {
-        throw new Error('Failed to fetch categories')
+        let errorMessage = 'Failed to fetch categories'
+        switch (response.status) {
+          case 404:
+            errorMessage = 'Categories endpoint not found. Please check if the server is running correctly.'
+            break
+          case 500:
+            errorMessage = 'Server error occurred while fetching categories. Please try again later.'
+            break
+          case 503:
+            errorMessage = 'Service temporarily unavailable. Please try again in a moment.'
+            break
+          default:
+            errorMessage = `Server responded with error: ${response.status} ${response.statusText}`
+        }
+        throw new Error(errorMessage)
       }
       const data = await response.json()
       setCategories(data)
+      setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch categories')
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Cannot connect to server. Please check if the backend is running on http://localhost:8000')
+      } else {
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+      }
     } finally {
       setLoading(false)
     }

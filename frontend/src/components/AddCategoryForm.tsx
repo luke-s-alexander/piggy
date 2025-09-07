@@ -13,6 +13,12 @@ const PREDEFINED_COLORS = [
   '#ec4899', '#f43f5e', '#64748b', '#6b7280', '#374151'
 ]
 
+// Helper function to validate hex color format
+const isValidHexColor = (color: string): boolean => {
+  if (!color) return true // Empty color is valid
+  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color)
+}
+
 export default function AddCategoryForm({ onCancel, onSuccess }: AddCategoryFormProps) {
   const [form, setForm] = useState<CategoryCreate>({
     name: '',
@@ -21,9 +27,31 @@ export default function AddCategoryForm({ onCancel, onSuccess }: AddCategoryForm
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [colorError, setColorError] = useState<string | null>(null)
+
+  const handleColorChange = (color: string) => {
+    setForm({ ...form, color })
+    if (color && !isValidHexColor(color)) {
+      setColorError('Please enter a valid hex color (e.g., #ffffff or #fff)')
+    } else {
+      setColorError(null)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate form before submitting
+    if (!form.name?.trim()) {
+      setError('Category name is required')
+      return
+    }
+    
+    if (form.color && !isValidHexColor(form.color)) {
+      setColorError('Please enter a valid hex color format')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -37,12 +65,30 @@ export default function AddCategoryForm({ onCancel, onSuccess }: AddCategoryForm
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create category')
+        let errorMessage = 'Failed to create category'
+        switch (response.status) {
+          case 409:
+            errorMessage = 'A category with this name already exists.'
+            break
+          case 422:
+            errorMessage = 'Invalid category data. Please check your inputs.'
+            break
+          case 500:
+            errorMessage = 'Server error occurred. Please try again later.'
+            break
+          default:
+            errorMessage = `Creation failed: ${response.status} ${response.statusText}`
+        }
+        throw new Error(errorMessage)
       }
 
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create category')
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Cannot connect to server. Please check your connection.')
+      } else {
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+      }
     } finally {
       setLoading(false)
     }
@@ -55,6 +101,7 @@ export default function AddCategoryForm({ onCancel, onSuccess }: AddCategoryForm
       color: ''
     })
     setError(null)
+    setColorError(null)
   }
 
   return (
@@ -104,11 +151,13 @@ export default function AddCategoryForm({ onCancel, onSuccess }: AddCategoryForm
             <button
               key={color}
               type="button"
-              onClick={() => setForm({ ...form, color })}
+              onClick={() => handleColorChange(color)}
               className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
                 form.color === color ? 'border-gray-800 scale-110' : 'border-gray-300'
               }`}
               style={{ backgroundColor: color }}
+              aria-label={`Select color ${color}`}
+              title={`Select color ${color}`}
             />
           ))}
         </div>
@@ -116,9 +165,16 @@ export default function AddCategoryForm({ onCancel, onSuccess }: AddCategoryForm
           type="text"
           placeholder="Or enter custom hex color (e.g., #ffffff)"
           value={form.color}
-          onChange={(e) => setForm({ ...form, color: e.target.value })}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          onChange={(e) => handleColorChange(e.target.value)}
+          className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            colorError ? 'border-red-300' : 'border-gray-300'
+          }`}
+          aria-label="Custom hex color"
+          aria-describedby={colorError ? 'add-color-error' : undefined}
         />
+        {colorError && (
+          <p id="add-color-error" className="mt-1 text-sm text-red-600">{colorError}</p>
+        )}
         {form.color && (
           <div className="mt-2 flex items-center gap-2">
             <span className="text-sm text-gray-600">Preview:</span>

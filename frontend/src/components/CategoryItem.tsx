@@ -14,6 +14,12 @@ const PREDEFINED_COLORS = [
   '#ec4899', '#f43f5e', '#64748b', '#6b7280', '#374151'
 ]
 
+// Helper function to validate hex color format
+const isValidHexColor = (color: string): boolean => {
+  if (!color) return true // Empty color is valid
+  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color)
+}
+
 export default function CategoryItem({ category, onUpdate, onDelete }: CategoryItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState<CategoryUpdate>({
@@ -22,10 +28,34 @@ export default function CategoryItem({ category, onUpdate, onDelete }: CategoryI
     color: category.color || ''
   })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [colorError, setColorError] = useState<string | null>(null)
+
+  const handleColorChange = (color: string) => {
+    setEditForm({ ...editForm, color })
+    if (color && !isValidHexColor(color)) {
+      setColorError('Please enter a valid hex color (e.g., #ffffff or #fff)')
+    } else {
+      setColorError(null)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate form before submitting
+    if (!editForm.name?.trim()) {
+      setError('Category name is required')
+      return
+    }
+    
+    if (editForm.color && !isValidHexColor(editForm.color)) {
+      setColorError('Please enter a valid hex color format')
+      return
+    }
+
     setLoading(true)
+    setError(null)
 
     try {
       const response = await fetch(`http://localhost:8000/api/v1/categories/${category.id}`, {
@@ -37,13 +67,34 @@ export default function CategoryItem({ category, onUpdate, onDelete }: CategoryI
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update category')
+        let errorMessage = 'Failed to update category'
+        switch (response.status) {
+          case 404:
+            errorMessage = 'Category not found. It may have been deleted by another user.'
+            break
+          case 409:
+            errorMessage = 'A category with this name already exists.'
+            break
+          case 422:
+            errorMessage = 'Invalid category data. Please check your inputs.'
+            break
+          case 500:
+            errorMessage = 'Server error occurred. Please try again later.'
+            break
+          default:
+            errorMessage = `Update failed: ${response.status} ${response.statusText}`
+        }
+        throw new Error(errorMessage)
       }
 
       setIsEditing(false)
       onUpdate()
     } catch (err) {
-      console.error('Error updating category:', err)
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Cannot connect to server. Please check your connection.')
+      } else {
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+      }
     } finally {
       setLoading(false)
     }
@@ -55,6 +106,7 @@ export default function CategoryItem({ category, onUpdate, onDelete }: CategoryI
     }
 
     setLoading(true)
+    setError(null)
 
     try {
       const response = await fetch(`http://localhost:8000/api/v1/categories/${category.id}`, {
@@ -62,12 +114,30 @@ export default function CategoryItem({ category, onUpdate, onDelete }: CategoryI
       })
 
       if (!response.ok) {
-        throw new Error('Failed to delete category')
+        let errorMessage = 'Failed to delete category'
+        switch (response.status) {
+          case 404:
+            errorMessage = 'Category not found. It may have already been deleted.'
+            break
+          case 409:
+            errorMessage = 'Cannot delete category because it is being used by existing transactions.'
+            break
+          case 500:
+            errorMessage = 'Server error occurred while deleting category. Please try again later.'
+            break
+          default:
+            errorMessage = `Delete failed: ${response.status} ${response.statusText}`
+        }
+        throw new Error(errorMessage)
       }
 
       onDelete()
     } catch (err) {
-      console.error('Error deleting category:', err)
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Cannot connect to server. Please check your connection.')
+      } else {
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+      }
     } finally {
       setLoading(false)
     }
@@ -79,12 +149,19 @@ export default function CategoryItem({ category, onUpdate, onDelete }: CategoryI
       type: category.type,
       color: category.color || ''
     })
+    setError(null)
+    setColorError(null)
     setIsEditing(false)
   }
 
   if (isEditing) {
     return (
       <div className="bg-gray-50 rounded-lg p-4 border-2 border-blue-200">
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -122,11 +199,13 @@ export default function CategoryItem({ category, onUpdate, onDelete }: CategoryI
                 <button
                   key={color}
                   type="button"
-                  onClick={() => setEditForm({ ...editForm, color })}
+                  onClick={() => handleColorChange(color)}
                   className={`w-6 h-6 rounded-full border-2 transition-all ${
                     editForm.color === color ? 'border-gray-800 scale-110' : 'border-gray-300'
                   }`}
                   style={{ backgroundColor: color }}
+                  aria-label={`Select color ${color}`}
+                  title={`Select color ${color}`}
                 />
               ))}
             </div>
@@ -134,9 +213,16 @@ export default function CategoryItem({ category, onUpdate, onDelete }: CategoryI
               type="text"
               placeholder="#ffffff"
               value={editForm.color}
-              onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onChange={(e) => handleColorChange(e.target.value)}
+              className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                colorError ? 'border-red-300' : 'border-gray-300'
+              }`}
+              aria-label="Custom hex color"
+              aria-describedby={colorError ? 'color-error' : undefined}
             />
+            {colorError && (
+              <p id="color-error" className="mt-1 text-sm text-red-600">{colorError}</p>
+            )}
           </div>
 
           <div className="flex gap-2 justify-end">
@@ -161,7 +247,13 @@ export default function CategoryItem({ category, onUpdate, onDelete }: CategoryI
   }
 
   return (
-    <div className="bg-white rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors flex items-center justify-between">
+    <div className="bg-white rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors">
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+      <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div
           className="w-4 h-4 rounded-full border border-gray-300"
@@ -195,6 +287,7 @@ export default function CategoryItem({ category, onUpdate, onDelete }: CategoryI
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </button>
+      </div>
       </div>
     </div>
   )
