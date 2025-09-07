@@ -29,7 +29,7 @@ A personal finance web application for tracking spending, income, and net worth 
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+gh repo clone luke-s-alexander/piggy
 cd piggy/backend
 
 # Create virtual environment
