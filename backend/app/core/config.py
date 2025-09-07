@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    database_url: str = "duckdb:///data/piggy.db"
+    database_url: str = "postgresql://piggy:piggy@localhost:5432/piggy_dev"
     debug: bool = True
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
     

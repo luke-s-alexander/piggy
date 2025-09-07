@@ -2,11 +2,12 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
+from uuid import UUID
 from .account_type import AccountType
 
 class AccountBase(BaseModel):
     name: str
-    account_type_id: str
+    account_type_id: UUID
     balance: Decimal = Field(default=Decimal('0.00'), decimal_places=2)
     institution: Optional[str] = None
     account_number: Optional[str] = None
@@ -18,7 +19,7 @@ class AccountCreate(AccountBase):
 
 class AccountUpdate(BaseModel):
     name: Optional[str] = None
-    account_type_id: Optional[str] = None
+    account_type_id: Optional[UUID] = None
     balance: Optional[Decimal] = None
     institution: Optional[str] = None
     account_number: Optional[str] = None
@@ -26,7 +27,7 @@ class AccountUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class Account(AccountBase):
-    id: str
+    id: UUID
     created_at: datetime
     updated_at: datetime
     account_type: Optional[AccountType] = None

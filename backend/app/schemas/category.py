@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 class CategoryBase(BaseModel):
     name: str
@@ -16,7 +17,7 @@ class CategoryUpdate(BaseModel):
     color: Optional[str] = None
 
 class Category(CategoryBase):
-    id: str
+    id: UUID
     created_at: datetime
     updated_at: datetime
     
