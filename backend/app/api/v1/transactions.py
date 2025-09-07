@@ -68,17 +68,10 @@ def update_transaction(
     
     update_data = transaction_update.dict(exclude_unset=True)
     
-    # Only allow specific fields to be updated to avoid SQLAlchemy/DuckDB issues
-    allowed_fields = {
-        'account_id', 'category_id', 'amount', 'description', 'transaction_date', 'type',
-        'ai_category_id', 'ai_confidence', 'is_ai_categorized', 'user_corrected'
-    }
-    
     try:
-        # Only update allowed fields
+        # Update all provided fields (Pydantic schema handles validation)
         for field, value in update_data.items():
-            if field in allowed_fields:
-                setattr(transaction, field, value)
+            setattr(transaction, field, value)
         
         db.commit()
         db.refresh(transaction)
