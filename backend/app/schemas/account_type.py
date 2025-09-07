@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 class AccountTypeBase(BaseModel):
     name: str
@@ -16,7 +17,7 @@ class AccountTypeUpdate(BaseModel):
     sub_category: Optional[str] = None
 
 class AccountType(AccountTypeBase):
-    id: str
+    id: UUID
     created_at: datetime
     updated_at: datetime
     

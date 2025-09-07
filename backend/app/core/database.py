@@ -3,16 +3,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
 from typing import Generator
-import os
 from .config import settings
 
-# Ensure data directory exists
-os.makedirs("data", exist_ok=True)
-
-# Create DuckDB engine
+# Create PostgreSQL engine with optimizations
 engine = create_engine(
     settings.database_url,
-    echo=settings.debug
+    echo=settings.debug,
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,  # Verify connections
+    connect_args={"options": "-c timezone=UTC"}
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

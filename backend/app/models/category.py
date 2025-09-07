@@ -1,11 +1,13 @@
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
+import uuid
 
 class Category(Base):
     __tablename__ = "categories"
 
-    id = Column(String, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, unique=True, nullable=False)  # "Groceries", "Salary", "Utilities"
     type = Column(String, nullable=False)  # "INCOME" or "EXPENSE"
     color = Column(String, nullable=True)  # For UI visualization

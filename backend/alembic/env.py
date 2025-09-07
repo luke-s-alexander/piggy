@@ -4,12 +4,6 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from alembic.ddl.impl import DefaultImpl
-
-# Add DuckDB support for Alembic
-class AlembicDuckDBImpl(DefaultImpl):
-    """Alembic implementation for DuckDB."""
-    __dialect__ = "duckdb"
 
 import os
 import sys
