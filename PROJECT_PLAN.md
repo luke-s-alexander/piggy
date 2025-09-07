@@ -522,7 +522,7 @@ ORDER BY h.symbol, hs.date;
 ### Phase 4: Transaction Management (Week 3)
 **Current Phase** - Detailed Todo List:
 1. [X] Build transaction entry form with account and category selection
-2. [ ] Add transaction editing functionality with validation and transaction deletion with confirmation dialog
+2. [X] Add transaction editing functionality with validation and transaction deletion with confirmation dialog
 3. [ ] Create category management interface for adding/editing/deleting categories
 4. [ ] Implement transaction listing page with sorting and filtering and search functionality
 5. [ ] Add transaction summary statistics (total income, expenses, net) and implement transaction type indicators (income vs expense) with visual styling
