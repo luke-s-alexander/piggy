@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Piggy is a personal finance web application for tracking spending, income, and net worth with AI-powered transaction categorization. The project follows a monorepo structure with React TypeScript frontend and Python FastAPI backend using DuckDB for analytical queries.
+Piggy is a personal finance web application for tracking spending, income, and net worth with AI-powered transaction categorization. The project follows a monorepo structure with React TypeScript frontend and Python FastAPI backend using PostgreSQL for reliable transactional data storage.
 
 ## Workflow
 - Always use a todo list and solve sequentially
@@ -37,7 +37,7 @@ This ensures each feature gets proper review, maintains clean git history, and a
 
 ### Tech Stack
 - **Frontend**: React 18 + TypeScript + Tailwind CSS + Recharts + React Router
-- **Backend**: Python 3.11+ + FastAPI + SQLAlchemy + DuckDB + Alembic
+- **Backend**: Python 3.11+ + FastAPI + SQLAlchemy + PostgreSQL + Alembic
 - **AI/ML**: spaCy + scikit-learn + pandas (or OpenAI API alternative)
 - **Testing**: pytest (backend), Jest (frontend)
 
@@ -54,7 +54,7 @@ piggy/
 │   │   ├── core/      # Configuration and database setup
 │   │   └── utils/     # Helper functions
 │   └── alembic/       # Database migrations
-└── data/              # DuckDB database and ML model storage
+└── data/              # ML model storage (PostgreSQL database hosted separately)
 ```
 
 ### Core Database Entities
@@ -68,7 +68,7 @@ piggy/
 ### Historical Tracking (Hybrid Approach)
 - **holding_snapshots**: Single source of truth for all historical balance data
 - **Database views**: Aggregate holdings into account/account-type/net-worth levels without storage overhead
-- **Benefits**: Data consistency, query simplicity, DuckDB analytical performance
+- **Benefits**: Data consistency, query simplicity, PostgreSQL ACID compliance and performance
 
 ## Development Commands
 
@@ -110,7 +110,7 @@ Key implementation in `backend/app/ml/categorizer.py`:
 ## Financial Data Considerations
 
 - Use `Decimal(12, 2)` for all monetary values to ensure precision
-- DuckDB is optimized for analytical queries (reports, aggregations, time-series)
+- PostgreSQL provides ACID compliance for reliable transactional operations
 - Net worth = total assets - total liabilities, tracked over time
 - Budget amounts distribute yearly allocation across 12 months automatically
 - Transaction categories must align between budgets and actual spending
@@ -142,7 +142,7 @@ Refer to PROJECT_PLAN.md for detailed phase breakdown and user stories.
 - **Node.js**: `node_modules/`, `npm-debug.log*`, `yarn-error.log*`
 - **Build outputs**: `dist/`, `build/`, `.next/`, coverage reports
 - **IDE files**: `.vscode/`, `.idea/`, `*.swp`, `.DS_Store`
-- **Database files**: `*.db`, `*.sqlite`, `data/*.duckdb` (unless sample data)
+- **Database files**: `*.db`, `*.sqlite` (PostgreSQL runs as external service)
 - **Logs**: `*.log`, `logs/`
 
 ### ✅ Safe Git Workflow:

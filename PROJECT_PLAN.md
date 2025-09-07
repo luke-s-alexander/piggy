@@ -31,7 +31,7 @@ Piggy is a personal finance web application that helps users track their spendin
 - **Python 3.11+** + **FastAPI** - Modern, fast API framework with automatic validation
 - **SQLAlchemy** - Powerful ORM with excellent async support
 - **Pydantic** - Data validation and serialization (built into FastAPI)
-- **DuckDB** - Analytical database optimized for financial queries and reporting
+- **PostgreSQL** - Robust relational database with ACID compliance for reliable financial data
 - **Alembic** - Database migrations
 
 ### AI & Machine Learning
@@ -183,9 +183,8 @@ piggy/
 │   ├── requirements.txt
 │   └── pyproject.toml
 │
-└── data/                        # DuckDB database location
-    ├── piggy.db
-    └── models/                  # ML model storage
+└── data/                        # ML model storage
+    └── models/                  # ML model storage (PostgreSQL database hosted separately)
 ```
 
 ### API Design
@@ -441,7 +440,7 @@ ORDER BY h.symbol, hs.date;
 ### Phase 1: Project Setup & Foundation ✅ **COMPLETED**
 - [x] Initialize frontend (React + TypeScript + Tailwind)
 - [x] Initialize backend (Python + FastAPI)
-- [x] Set up DuckDB database with SQLAlchemy
+- [x] Set up PostgreSQL database with SQLAlchemy
 - [x] Create basic project structure and build scripts
 - [x] Set up development environment and tooling
 
@@ -451,16 +450,17 @@ ORDER BY h.symbol, hs.date;
 - Both development servers running with hot reload (backend:8000, frontend:5173)
 - FastAPI automatic documentation available at /docs endpoint
 - Alembic migrations configured for database schema management
+- **Database Migration**: Successfully migrated from DuckDB to PostgreSQL for better ACID compliance and transactional reliability
 
 ### Phase 2: Core Data Layer ✅ **COMPLETED**
 **Database Implementation:**
-- [x] Configure DuckDB with SQLAlchemy (update database.py for proper DuckDB setup)
+- [x] Configure PostgreSQL with SQLAlchemy (migrated from DuckDB for better ACID compliance)
 - [x] Create simplified core models first:
   - [x] `Account` model (basic fields, defer complex holdings)
   - [x] `Category` model (transaction categories)  
   - [x] `Transaction` model (basic version without AI fields)
   - [x] `AccountType` model (asset/liability classification)
-- [x] Set up Alembic migrations with proper DuckDB configuration
+- [x] Set up Alembic migrations with proper PostgreSQL configuration
 - [x] Create database initialization script with seed data
 
 **API Foundation:**
@@ -488,11 +488,12 @@ ORDER BY h.symbol, hs.date;
 - [x] All tests pass (`pytest` in backend)
 
 **Implementation Notes:**
-- DuckDB database successfully created at `backend/data/piggy.db` with proper SQLAlchemy configuration
+- PostgreSQL database successfully configured with proper SQLAlchemy configuration and native UUID support
 - Full CRUD API endpoints working with proper Pydantic validation and database relationships
 - Seed data includes account types (Checking, Savings, Credit Card) and transaction categories (Groceries, Salary, etc.)
 - Database queries showing proper ORM relationships and data persistence
 - FastAPI automatic documentation available at `/docs` endpoint
+- **Migration Benefits**: Fixed constraint violation issues that occurred with DuckDB's OLAP architecture during UPDATE operations
 
 **Defer to Later Phases:**
 - Complex holdings/snapshots models → Phase 7
@@ -621,7 +622,7 @@ class RuleBasedCategorizer:
 cd backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install fastapi uvicorn sqlalchemy duckdb pandas scikit-learn spacy
+pip install fastapi uvicorn sqlalchemy psycopg2-binary asyncpg pandas scikit-learn spacy
 pip install alembic pydantic python-multipart
 
 # Set up frontend
@@ -632,7 +633,7 @@ npm install tailwindcss react-router-dom recharts react-hook-form
 # Initialize database
 cd ../backend
 alembic init alembic
-# Configure alembic.ini to use DuckDB
+# Configure alembic.ini to use PostgreSQL
 ```
 
 ### 🔄 Database Implementation Strategy
@@ -684,9 +685,9 @@ alembic init alembic
 
 **Database Setup (Phase 2):**
 ```bash
-# Configure DuckDB path
-mkdir -p data/
-# Database will be created automatically at: data/piggy.db
+# Configure PostgreSQL
+# Ensure PostgreSQL is running and database 'piggy_dev' exists
+# Connection: postgresql://piggy:piggy@localhost:5432/piggy_dev
 
 # Set up migrations
 cd backend
@@ -697,7 +698,7 @@ alembic upgrade head
 **Environment Variables:**
 ```bash
 # backend/.env (create this file)
-DATABASE_URL=duckdb:///data/piggy.db
+DATABASE_URL=postgresql://piggy:piggy@localhost:5432/piggy_dev
 DEBUG=true
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
@@ -721,11 +722,12 @@ open http://localhost:8000/docs
 - **Modern API Framework**: FastAPI provides automatic validation, documentation
 - **Performance**: FastAPI is one of the fastest Python frameworks
 
-### DuckDB
-- **Analytics Optimized**: Perfect for financial reporting and aggregations
-- **Fast Queries**: Columnar storage excels at time-series analysis
-- **Simple Deployment**: Embedded database like SQLite but faster for analytics
-- **SQL Compatible**: Easy migration from/to other databases
+### PostgreSQL
+- **ACID Compliance**: Essential for financial data integrity and consistency
+- **Mature Ecosystem**: Robust, battle-tested database with excellent tooling
+- **Advanced Features**: Native UUID support, excellent indexing, and full SQL compliance
+- **Scalability**: Handles both transactional and analytical workloads efficiently
+- **Reliability**: Superior handling of concurrent transactions and constraint enforcement
 
 ### React + TypeScript
 - **Type Safety**: Critical for financial data integrity
@@ -739,7 +741,7 @@ open http://localhost:8000/docs
 - **Security**: All financial data stored locally initially
 - **Data Precision**: Using Decimal types for accurate financial calculations
 - **AI Ethics**: User corrections improve personal model, no data shared
-- **Performance**: DuckDB's columnar storage optimized for financial queries
+- **Performance**: PostgreSQL's mature query optimizer and indexing for reliable financial operations
 - **Scalability**: Architecture supports future cloud deployment
 - **Testing Strategy**: Unit tests for business logic, integration tests for API
 - **Backup**: Regular database backups for data protection
