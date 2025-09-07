@@ -127,7 +127,7 @@ export default function AccountList({ onEditAccount, refreshTrigger }: AccountLi
     if (category === 'ASSET') {
       return amount >= 0 ? 'text-green-600' : 'text-red-600'
     } else { // LIABILITY
-      return amount > 0 ? 'text-red-600' : 'text-green-600'
+      return amount < 0 ? 'text-red-600' : 'text-green-600'
     }
   }
 
