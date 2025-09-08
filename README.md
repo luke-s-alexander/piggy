@@ -70,7 +70,7 @@ Once the backend is running, visit:
 
 ### Database
 
-The application uses DuckDB for analytical performance. The database is automatically initialized with:
+The application uses PostgreSQL. The database is automatically initialized with:
 - Default account types (Checking, Savings, Credit Card, Investment, etc.)
 - Transaction categories (Groceries, Entertainment, Salary, etc.)
 
