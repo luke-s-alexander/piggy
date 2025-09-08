@@ -523,37 +523,37 @@ ORDER BY h.symbol, hs.date;
 **Current Phase** - Detailed Todo List:
 1. [X] Build transaction entry form with account and category selection
 2. [X] Add transaction editing functionality with validation and transaction deletion with confirmation dialog
-3. [ ] Create category management interface for adding/editing/deleting categories
-4. [ ] Implement transaction listing page with sorting and filtering and search functionality
-5. [ ] Add transaction summary statistics (total income, expenses, net) and implement transaction type indicators (income vs expense) with visual styling
+3. [X] Create category management interface for adding/editing/deleting categories
+4. [X] Implement transaction listing page with sorting and filtering and search functionality
+5. [X] Add transaction summary statistics (total income, expenses, net) and implement transaction type indicators (income vs expense) with visual styling
 
-### Phase 5: AI Transaction Categorization (Week 3)
-- [ ] Build rule-based categorization engine
-- [ ] Implement ML categorization model with scikit-learn
-- [ ] Create confidence scoring system
-- [ ] Add user feedback loop for model improvement
-- [ ] Build categorization review UI
-
-### Phase 6: Budget Management (Week 4)
+### Phase 5: Budget Management (Week 4)
 - [ ] Build budget creation and management UI
 - [ ] Implement yearly to monthly budget distribution
 - [ ] Create budget vs actual tracking
 - [ ] Add budget progress visualizations
 - [ ] Implement budget rollover functionality
 
-### Phase 7: Net Worth Dashboard (Week 4-5)
+### Phase 6: Net Worth Dashboard (Week 4-5)
 - [ ] Build net worth calculation logic
 - [ ] Create net worth trend charts with Recharts
 - [ ] Implement asset/liability breakdown visualizations
 - [ ] Add category-wise breakdowns
 - [ ] Build comprehensive dashboard
 
-### Phase 8: Reports & Polish (Week 5)
+### Phase 7: Reports & Polish (Week 5)
 - [ ] Build spending analysis reports
 - [ ] Add date range filtering
 - [ ] Implement responsive design
 - [ ] Add data export functionality
 - [ ] Testing and bug fixes
+
+### Phase 8: AI Transaction Categorization (Week 3)
+- [ ] Build rule-based categorization engine
+- [ ] Implement ML categorization model with scikit-learn
+- [ ] Create confidence scoring system
+- [ ] Add user feedback loop for model improvement
+- [ ] Build categorization review UI
 
 ---
 
