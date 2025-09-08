@@ -269,3 +269,111 @@ class BudgetService:
             progress_percentage=progress_percentage,
             categories=categories
         )
+    
+    def get_active_budget(self) -> Optional[Budget]:
+        """Get the currently active budget"""
+        return self.db.query(Budget).filter(Budget.is_active == True).first()
+    
+    def set_active_budget(self, budget_id: uuid.UUID) -> Optional[Budget]:
+        """Set a budget as active, ensuring only one active budget per year"""
+        target_budget = self.get_budget_by_id(budget_id)
+        if not target_budget:
+            return None
+        
+        # Check if there's already an active budget for this year
+        existing_active = self.db.query(Budget).filter(
+            Budget.year == target_budget.year,
+            Budget.is_active == True,
+            Budget.id != budget_id
+        ).first()
+        
+        if existing_active:
+            existing_active.is_active = False
+        
+        target_budget.is_active = True
+        self.db.commit()
+        
+        self.db.refresh(target_budget)
+        return target_budget
+    
+    def get_dashboard_data(self, current_month: int) -> Optional[dict]:
+        """Get dashboard data for the active budget with YTD calculations"""
+        active_budget = self.get_active_budget()
+        if not active_budget:
+            return None
+        
+        current_year = active_budget.year
+        
+        # Calculate YTD budget amounts (cumulative through current month)
+        ytd_income_budget = Decimal('0')
+        ytd_expense_budget = Decimal('0')
+        
+        # Get categories by type
+        income_categories = []
+        expense_categories = []
+        
+        for line_item in active_budget.line_items:
+            monthly_amount = line_item.yearly_amount / 12
+            ytd_amount = monthly_amount * current_month
+            
+            if line_item.category and line_item.category.type == "INCOME":
+                ytd_income_budget += ytd_amount
+                income_categories.append({
+                    'id': str(line_item.category_id),
+                    'name': line_item.category.name,
+                    'yearly_budget': float(line_item.yearly_amount),
+                    'monthly_budget': float(monthly_amount),
+                    'ytd_budget': float(ytd_amount)
+                })
+            elif line_item.category and line_item.category.type == "EXPENSE":
+                ytd_expense_budget += ytd_amount
+                expense_categories.append({
+                    'id': str(line_item.category_id),
+                    'name': line_item.category.name,
+                    'yearly_budget': float(line_item.yearly_amount),
+                    'monthly_budget': float(monthly_amount),
+                    'ytd_budget': float(ytd_amount)
+                })
+        
+        # Get actual YTD income/expense totals
+        ytd_income_actual = self.db.query(func.sum(Transaction.amount)).filter(
+            Transaction.type == "INCOME",
+            extract('year', Transaction.transaction_date) == current_year,
+            extract('month', Transaction.transaction_date) <= current_month
+        ).scalar() or Decimal('0')
+        
+        ytd_expense_actual = self.db.query(func.sum(Transaction.amount)).filter(
+            Transaction.type == "EXPENSE",
+            extract('year', Transaction.transaction_date) == current_year,
+            extract('month', Transaction.transaction_date) <= current_month
+        ).scalar() or Decimal('0')
+        
+        # Get category-wise YTD actuals
+        category_actuals = self.db.query(
+            Category.id,
+            Category.type,
+            func.sum(Transaction.amount).label('actual')
+        ).join(Transaction, Category.id == Transaction.category_id).filter(
+            extract('year', Transaction.transaction_date) == current_year,
+            extract('month', Transaction.transaction_date) <= current_month
+        ).group_by(Category.id, Category.type).all()
+        
+        # Add actual amounts to categories
+        actual_lookup = {cat[0]: cat[2] for cat in category_actuals}
+        
+        for category in income_categories + expense_categories:
+            cat_id = uuid.UUID(category['id'])
+            category['ytd_actual'] = float(actual_lookup.get(cat_id, Decimal('0')))
+            category['ytd_difference'] = category['ytd_budget'] - category['ytd_actual']
+        
+        return {
+            'budget': active_budget,
+            'current_month': current_month,
+            'current_year': current_year,
+            'ytd_income_budget': float(ytd_income_budget),
+            'ytd_income_actual': float(ytd_income_actual),
+            'ytd_expense_budget': float(ytd_expense_budget),
+            'ytd_expense_actual': float(ytd_expense_actual),
+            'income_categories': income_categories,
+            'expense_categories': expense_categories
+        }

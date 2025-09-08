@@ -39,6 +39,49 @@ def get_budgets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return service.get_all_budgets(skip, limit)
 
 
+@router.get("/dashboard")
+def get_dashboard_data(month: int = None, db: Session = Depends(get_db)):
+    """Get dashboard data for active budget with YTD calculations"""
+    from datetime import datetime
+    
+    # Use current month if not specified
+    if month is None:
+        month = datetime.now().month
+    
+    # Validate month
+    if month < 1 or month > 12:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Month must be between 1 and 12"
+        )
+    
+    service = BudgetService(db)
+    dashboard_data = service.get_dashboard_data(month)
+    
+    if not dashboard_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active budget found"
+        )
+    
+    return dashboard_data
+
+
+@router.get("/active", response_model=Budget)
+def get_active_budget(db: Session = Depends(get_db)):
+    """Get the currently active budget"""
+    service = BudgetService(db)
+    
+    active_budget = service.get_active_budget()
+    if not active_budget:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active budget found"
+        )
+    
+    return active_budget
+
+
 @router.get("/{budget_id}", response_model=BudgetWithLineItems)
 def get_budget(budget_id: uuid.UUID, db: Session = Depends(get_db)):
     """Get budget by ID with line items"""
@@ -183,3 +226,18 @@ def get_monthly_budget_progress(budget_id: uuid.UUID, month: int, db: Session = 
         )
     
     return progress
+
+
+@router.put("/{budget_id}/set-active", response_model=Budget)
+def set_active_budget(budget_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Set a budget as active"""
+    service = BudgetService(db)
+    
+    active_budget = service.set_active_budget(budget_id)
+    if not active_budget:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget not found"
+        )
+    
+    return active_budget

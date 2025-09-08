@@ -49,6 +49,45 @@ export default function BudgetList({ onBudgetChange, onSelectBudget }: BudgetLis
     fetchBudgets()
   }, [])
 
+  const handleSetActive = async (budgetId: string, budgetName: string) => {
+    if (!window.confirm(`Set "${budgetName}" as the active budget? This will deactivate any currently active budget.`)) {
+      return
+    }
+
+    setError(null)
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/budgets/${budgetId}/set-active`, {
+        method: 'PUT',
+      })
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to set active budget'
+        switch (response.status) {
+          case 404:
+            errorMessage = 'Budget not found.'
+            break
+          case 500:
+            errorMessage = 'Server error occurred while setting active budget. Please try again later.'
+            break
+          default:
+            errorMessage = `Set active failed: ${response.status} ${response.statusText}`
+        }
+        throw new Error(errorMessage)
+      }
+
+      // Refresh budgets list
+      fetchBudgets()
+      onBudgetChange()
+    } catch (err) {
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Cannot connect to server. Please check your connection.')
+      } else {
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+      }
+    }
+  }
+
   const handleDelete = async (budgetId: string, budgetName: string) => {
     if (!window.confirm(`Are you sure you want to delete "${budgetName}"? This cannot be undone.`)) {
       return
@@ -155,6 +194,18 @@ export default function BudgetList({ onBudgetChange, onSelectBudget }: BudgetLis
               </div>
 
               <div className="flex items-center space-x-2">
+                {budget.is_active ? (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✓ Active
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handleSetActive(budget.id, budget.name)}
+                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Set Active
+                  </button>
+                )}
                 <button
                   onClick={() => onSelectBudget(budget)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"

@@ -1,18 +1,19 @@
 import { useState } from 'react'
+import BudgetDashboard from '../components/BudgetDashboard'
 import BudgetList from '../components/BudgetList'
 import AddBudgetForm from '../components/AddBudgetForm'
 import BudgetDetails from '../components/BudgetDetails'
 import type { Budget } from '../types/budget'
 
-type ViewMode = 'list' | 'add' | 'details'
+type ViewMode = 'dashboard' | 'list' | 'add' | 'details'
 
 export default function Budget() {
-  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [viewMode, setViewMode] = useState<ViewMode>('dashboard')
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null)
 
   const handleAddSuccess = () => {
-    setViewMode('list')
-    // Budget list will automatically refresh
+    setViewMode('dashboard')
+    // Return to dashboard after adding budget
   }
 
   const handleBudgetChange = () => {
@@ -29,14 +30,34 @@ export default function Budget() {
     setViewMode('list')
   }
 
+  const handleBackToDashboard = () => {
+    setSelectedBudget(null)
+    setViewMode('dashboard')
+  }
+
   return (
     <div className="p-6">
+      {viewMode === 'dashboard' && (
+        <BudgetDashboard onViewBudgets={() => setViewMode('list')} />
+      )}
+
       {viewMode === 'list' && (
         <>
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Budgets</h1>
-              <p className="text-gray-600 mt-1">Manage your annual budgets and track spending progress</p>
+            <div className="flex items-center">
+              <button
+                onClick={handleBackToDashboard}
+                className="text-gray-600 hover:text-gray-800 p-2 mr-2"
+                title="Back to dashboard"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Budgets</h1>
+                <p className="text-gray-600 mt-1">Manage your annual budgets and track spending progress</p>
+              </div>
             </div>
             <button
               onClick={() => setViewMode('add')}
