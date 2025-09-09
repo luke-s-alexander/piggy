@@ -232,23 +232,23 @@ class BudgetService:
         remaining = monthly_budgeted - monthly_spent
         progress_percentage = float((monthly_spent / monthly_budgeted) * 100) if monthly_budgeted > 0 else 0
         
-        # Get category-wise monthly spending
+        # Get category-wise monthly activity (both income and expenses)
         category_spending = self.db.query(
             Category.id,
             Category.name,
+            Category.type,
             func.sum(Transaction.amount).label('spent')
         ).join(Transaction, Category.id == Transaction.category_id).filter(
-            Transaction.type == "EXPENSE",
             extract('year', Transaction.transaction_date) == budget.year,
             extract('month', Transaction.transaction_date) == month
-        ).group_by(Category.id, Category.name).all()
+        ).group_by(Category.id, Category.name, Category.type).all()
         
         categories = []
         for line_item in budget.line_items:
             spent = Decimal('0')
             for cat_spend in category_spending:
                 if cat_spend[0] == line_item.category_id:
-                    spent = cat_spend[2] or Decimal('0')
+                    spent = cat_spend[3] or Decimal('0')
                     break
             
             categories.append({
