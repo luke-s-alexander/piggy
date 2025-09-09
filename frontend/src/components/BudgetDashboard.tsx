@@ -71,14 +71,22 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
   const getIncomeChartData = () => {
     if (!dashboardData) return []
     
+    const budgetAmount = viewState.period === 'annual' 
+      ? Math.abs(dashboardData.ytd_income_budget)
+      : Math.abs(dashboardData.ytd_income_budget / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
+    
+    const actualAmount = viewState.period === 'annual'
+      ? Math.abs(dashboardData.ytd_income_actual)
+      : Math.abs(dashboardData.ytd_income_actual / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
+    
     return [
       {
         name: 'Budget',
-        amount: Math.abs(dashboardData.ytd_income_budget)
+        amount: budgetAmount
       },
       {
         name: 'Actual',
-        amount: Math.abs(dashboardData.ytd_income_actual)
+        amount: actualAmount
       }
     ]
   }
@@ -86,14 +94,22 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
   const getExpenseChartData = () => {
     if (!dashboardData) return []
     
+    const budgetAmount = viewState.period === 'annual' 
+      ? Math.abs(dashboardData.ytd_expense_budget)
+      : Math.abs(dashboardData.ytd_expense_budget / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
+    
+    const actualAmount = viewState.period === 'annual'
+      ? Math.abs(dashboardData.ytd_expense_actual)
+      : Math.abs(dashboardData.ytd_expense_actual / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
+    
     return [
       {
         name: 'Budget',
-        amount: Math.abs(dashboardData.ytd_expense_budget)
+        amount: budgetAmount
       },
       {
         name: 'Actual',
-        amount: Math.abs(dashboardData.ytd_expense_actual)
+        amount: actualAmount
       }
     ]
   }
@@ -109,101 +125,92 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          
-          <div className="flex items-center space-x-4">
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setViewState({ period: 'annual' })}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  viewState.period === 'annual'
-                    ? 'bg-white text-gray-900 shadow'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Annual
-              </button>
-              <button
-                onClick={() => setViewState({ 
-                  period: 'monthly', 
-                  selectedMonth: dashboardData?.current_month || 1 
-                })}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  viewState.period === 'monthly'
-                    ? 'bg-white text-gray-900 shadow'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Monthly
-              </button>
-            </div>
-            
-            {viewState.period === 'monthly' && (
-              <select
-                value={viewState.selectedMonth || dashboardData?.current_month || 1}
-                onChange={(e) => setViewState({ 
-                  period: 'monthly', 
-                  selectedMonth: parseInt(e.target.value) 
-                })}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm"
-              >
-                {getAvailableMonths().map(month => (
-                  <option key={month} value={month}>
-                    {MONTHS[month - 1]}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
         </div>
 
         <div className="space-y-4">
-          {categories.map(category => (
-            <div key={category.id} className="border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-gray-900">{category.name}</h3>
-                <div className="text-sm text-gray-600">
-                  ${category.yearly_budget.toLocaleString()} / year
+          {categories.map(category => {
+            const progress = category.ytd_budget > 0 ? (Math.abs(category.ytd_actual) / category.ytd_budget) * 100 : 0
+            const isOnTarget = progress >= 80 && progress <= 100 // Green: 80-100%
+            const isNearTarget = progress >= 60 && progress < 80 || (progress > 100 && progress <= 120) // Yellow: 60-80% or 100-120%
+            const isOffTarget = progress < 60 || progress > 120 // Red: <60% or >120%
+            
+            const rowColorClass = isOnTarget 
+              ? 'border-green-200 bg-green-50' 
+              : isNearTarget 
+                ? 'border-yellow-200 bg-yellow-50'
+                : 'border-red-200 bg-red-50'
+            
+            return (
+              <div key={category.id} className={`border rounded-lg p-4 ${rowColorClass}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-gray-900">{category.name}</h3>
+                  <div className="text-sm text-gray-600">
+                    ${category.yearly_budget.toLocaleString()} / year
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
-                <div>
-                  <div className="text-gray-500">Budget</div>
-                  <div className="font-medium">
-                    ${viewState.period === 'annual' 
-                      ? category.ytd_budget.toFixed(0)
-                      : category.monthly_budget.toFixed(0)
-                    }
+                <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
+                  <div>
+                    <div className="text-gray-500">Budget</div>
+                    <div className="font-medium">
+                      ${viewState.period === 'annual' 
+                        ? category.ytd_budget.toFixed(0)
+                        : category.monthly_budget.toFixed(0)
+                      }
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Actual</div>
+                    <div className="font-medium">
+                      ${Math.abs(category.ytd_actual).toLocaleString()}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Difference</div>
+                    <div className={`font-medium ${category.ytd_difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ${Math.abs(category.ytd_difference).toLocaleString()}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-gray-500">Actual</div>
-                  <div className="font-medium">
-                    ${Math.abs(category.ytd_actual).toLocaleString()}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-500">Difference</div>
-                  <div className={`font-medium ${category.ytd_difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ${Math.abs(category.ytd_difference).toLocaleString()}
-                  </div>
-                </div>
-              </div>
 
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full transition-all duration-300`}
-                  style={{ 
-                    backgroundColor: color,
-                    width: `${Math.min(
-                      (Math.abs(category.ytd_actual) / category.ytd_budget) * 100, 
-                      100
-                    )}%` 
-                  }}
-                ></div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      isOnTarget 
+                        ? 'bg-green-500' 
+                        : isNearTarget 
+                          ? 'bg-yellow-500'
+                          : 'bg-red-500'
+                    }`}
+                    style={{ 
+                      width: `${Math.min(progress, 100)}%` 
+                    }}
+                  ></div>
+                </div>
+                
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span className={`font-medium ${
+                    isOnTarget 
+                      ? 'text-green-700' 
+                      : isNearTarget 
+                        ? 'text-yellow-700'
+                        : 'text-red-700'
+                  }`}>
+                    {progress.toFixed(1)}% used
+                  </span>
+                  <span className={`font-medium ${
+                    isOnTarget 
+                      ? 'text-green-700' 
+                      : isNearTarget 
+                        ? 'text-yellow-700'
+                        : 'text-red-700'
+                  }`}>
+                    {isOnTarget ? 'On Target' : isNearTarget ? 'Near Target' : 'Off Target'}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     )
@@ -243,19 +250,68 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{dashboardData.budget.name}</h1>
-        <p className="text-gray-600">
-          Year {dashboardData.budget.year} • 
-          YTD through {MONTHS[dashboardData.current_month - 1]}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{dashboardData.budget.name}</h1>
+          <p className="text-gray-600">
+            Year {dashboardData.budget.year} • 
+            YTD through {MONTHS[dashboardData.current_month - 1]}
+          </p>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewState({ period: 'annual' })}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                viewState.period === 'annual'
+                  ? 'bg-white text-gray-900 shadow'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Annual
+            </button>
+            <button
+              onClick={() => setViewState({ 
+                period: 'monthly', 
+                selectedMonth: dashboardData?.current_month || 1 
+              })}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                viewState.period === 'monthly'
+                  ? 'bg-white text-gray-900 shadow'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Monthly
+            </button>
+          </div>
+          
+          {viewState.period === 'monthly' && (
+            <select
+              value={viewState.selectedMonth || dashboardData?.current_month || 1}
+              onChange={(e) => setViewState({ 
+                period: 'monthly', 
+                selectedMonth: parseInt(e.target.value) 
+              })}
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+            >
+              {getAvailableMonths().map(month => (
+                <option key={month} value={month}>
+                  {MONTHS[month - 1]}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {/* Bar Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Income Chart */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Income (YTD)</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Income ({viewState.period === 'annual' ? 'YTD' : MONTHS[viewState.selectedMonth ? viewState.selectedMonth - 1 : dashboardData.current_month - 1]})
+          </h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={getIncomeChartData()}>
@@ -271,7 +327,9 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
 
         {/* Expense Chart */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Expenses (YTD)</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Expenses ({viewState.period === 'annual' ? 'YTD' : MONTHS[viewState.selectedMonth ? viewState.selectedMonth - 1 : dashboardData.current_month - 1]})
+          </h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={getExpenseChartData()}>

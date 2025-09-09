@@ -1,3 +1,12 @@
+export interface Category {
+  id: string
+  name: string
+  type: 'INCOME' | 'EXPENSE'
+  color?: string
+  created_at?: string
+  updated_at?: string
+}
+
 export interface BudgetLineItem {
   id: string
   budget_id: string
@@ -6,12 +15,7 @@ export interface BudgetLineItem {
   monthly_amount: number
   created_at: string
   updated_at: string
-  category?: {
-    id: string
-    name: string
-    type: 'INCOME' | 'EXPENSE'
-    color?: string
-  }
+  category?: Category
 }
 
 export interface Budget {
