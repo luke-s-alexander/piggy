@@ -124,10 +124,10 @@ The project is planned in 8 phases:
 2. **Data Layer**: Database schema, models, basic API routes  
 3. **Account Management**: Add/edit accounts with asset/liability categorization
 4. **Transaction Management**: CRUD operations with category assignment
-5. **AI Categorization**: Implement hybrid rule-based + ML system
-6. **Budget Management**: Yearly budgets with monthly tracking
-7. **Net Worth Dashboard**: Visualizations and trend analysis
-8. **Reports & Polish**: Advanced analytics and final touches
+5. **Budget Management**: Yearly budgets with monthly tracking
+6. **Net Worth Dashboard**: Visualizations and trend analysis
+7. **Reports & Polish**: Advanced analytics and final touches
+8. **AI Categorization**: Implement hybrid rule-based + ML system
 
 Refer to PROJECT_PLAN.md for detailed phase breakdown and user stories.
 

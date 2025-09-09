@@ -519,41 +519,54 @@ ORDER BY h.symbol, hs.date;
 - Enhanced API validation with detailed error messages
 
 
-### Phase 4: Transaction Management (Week 3)
+### Phase 4: Transaction Management
 **Current Phase** - Detailed Todo List:
 1. [X] Build transaction entry form with account and category selection
 2. [X] Add transaction editing functionality with validation and transaction deletion with confirmation dialog
-3. [ ] Create category management interface for adding/editing/deleting categories
-4. [ ] Implement transaction listing page with sorting and filtering and search functionality
-5. [ ] Add transaction summary statistics (total income, expenses, net) and implement transaction type indicators (income vs expense) with visual styling
+3. [X] Create category management interface for adding/editing/deleting categories
+4. [X] Implement transaction listing page with sorting and filtering and search functionality
+5. [X] Add transaction summary statistics (total income, expenses, net) and implement transaction type indicators (income vs expense) with visual styling
 
-### Phase 5: AI Transaction Categorization (Week 3)
-- [ ] Build rule-based categorization engine
-- [ ] Implement ML categorization model with scikit-learn
-- [ ] Create confidence scoring system
-- [ ] Add user feedback loop for model improvement
-- [ ] Build categorization review UI
+### Phase 5: Budget Management
+- [X] Build budget creation and management UI
+- [X] Implement yearly to monthly budget distribution
+- [X] Create budget vs actual tracking
+- [X] Add budget progress visualizations
+- [X] Budget overview dashboard
+- [X] Active flag for budgets
+- [X] Editing existing budget: add categories, change amounts and set budget active/inactive
+- [X] Make annual/month toggle on budget overview apply to all components on page
+- [X] Styling on budget overview: off target rows in red, on target in green, near target yellow
 
-### Phase 6: Budget Management (Week 4)
-- [ ] Build budget creation and management UI
-- [ ] Implement yearly to monthly budget distribution
-- [ ] Create budget vs actual tracking
-- [ ] Add budget progress visualizations
-- [ ] Implement budget rollover functionality
+### Phase 6: Bulk import transactions
+- [ ] Redesign transaction page for faster editing: 
+  - [ ] use a table format with headers. control sorting using header. make header sticky on scroll through table. 
+  - [ ] filter on transaction date, category, etc. 
+  - [ ] Edit fields directly from main listing page 
+  - [ ] condense design to fit more transactions per page
+- [ ] Bulk load transactions using standard csv template
+- [ ] Load transaction file formats from popular banks
+- [ ] Testing and bug fixes
 
-### Phase 7: Net Worth Dashboard (Week 4-5)
+### Phase 7: Net Worth Dashboard
 - [ ] Build net worth calculation logic
 - [ ] Create net worth trend charts with Recharts
 - [ ] Implement asset/liability breakdown visualizations
 - [ ] Add category-wise breakdowns
 - [ ] Build comprehensive dashboard
 
-### Phase 8: Reports & Polish (Week 5)
+### Phase 8: Reports & Polish
 - [ ] Build spending analysis reports
 - [ ] Add date range filtering
 - [ ] Implement responsive design
-- [ ] Add data export functionality
 - [ ] Testing and bug fixes
+
+### Phase 9: AI Transaction Categorization
+- [ ] Build rule-based categorization engine
+- [ ] Implement ML categorization model with scikit-learn
+- [ ] Create confidence scoring system
+- [ ] Add user feedback loop for model improvement
+- [ ] Build categorization review UI
 
 ---
 
