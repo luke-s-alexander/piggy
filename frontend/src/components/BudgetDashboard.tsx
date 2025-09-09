@@ -77,7 +77,7 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
     if (!dashboardData?.budget?.id) return
     
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/budgets/${dashboardData.budget.id}/monthly/${month}`)
+      const response = await fetch(`http://localhost:8000/api/v1/budgets/${dashboardData!.budget.id}/monthly/${month}`)
       if (!response.ok) {
         throw new Error('Failed to fetch monthly data')
       }
@@ -117,18 +117,18 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
     let budgetAmount, actualAmount
     
     if (viewState.period === 'annual') {
-      budgetAmount = Math.abs(dashboardData.ytd_income_budget)
-      actualAmount = Math.abs(dashboardData.ytd_income_actual)
+      budgetAmount = Math.abs(dashboardData!.ytd_income_budget)
+      actualAmount = Math.abs(dashboardData!.ytd_income_actual)
     } else {
       // Use monthly data if available, otherwise fallback
       if (monthlyData) {
-        budgetAmount = dashboardData.income_categories.reduce((sum, cat) => sum + cat.monthly_budget, 0)
+        budgetAmount = dashboardData!.income_categories.reduce((sum, cat) => sum + cat.monthly_budget, 0)
         actualAmount = monthlyData.categories
-          .filter((cat) => dashboardData.income_categories.some(inc => inc.id === cat.category_id))
+          .filter((cat) => dashboardData!.income_categories.some(inc => inc.id === cat.category_id))
           .reduce((sum, cat) => sum + Math.abs(cat.spent), 0)
       } else {
-        budgetAmount = Math.abs(dashboardData.ytd_income_budget / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
-        actualAmount = Math.abs(dashboardData.ytd_income_actual / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
+        budgetAmount = Math.abs(dashboardData!.ytd_income_budget / dashboardData!.current_month * (viewState.selectedMonth || dashboardData!.current_month))
+        actualAmount = Math.abs(dashboardData!.ytd_income_actual / dashboardData!.current_month * (viewState.selectedMonth || dashboardData!.current_month))
       }
     }
     
@@ -150,18 +150,18 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
     let budgetAmount, actualAmount
     
     if (viewState.period === 'annual') {
-      budgetAmount = Math.abs(dashboardData.ytd_expense_budget)
-      actualAmount = Math.abs(dashboardData.ytd_expense_actual)
+      budgetAmount = Math.abs(dashboardData!.ytd_expense_budget)
+      actualAmount = Math.abs(dashboardData!.ytd_expense_actual)
     } else {
       // Use monthly data if available, otherwise fallback
       if (monthlyData) {
-        budgetAmount = dashboardData.expense_categories.reduce((sum, cat) => sum + cat.monthly_budget, 0)
+        budgetAmount = dashboardData!.expense_categories.reduce((sum, cat) => sum + cat.monthly_budget, 0)
         actualAmount = monthlyData.categories
-          .filter((cat) => dashboardData.expense_categories.some(exp => exp.id === cat.category_id))
+          .filter((cat) => dashboardData!.expense_categories.some(exp => exp.id === cat.category_id))
           .reduce((sum, cat) => sum + Math.abs(cat.spent), 0)
       } else {
-        budgetAmount = Math.abs(dashboardData.ytd_expense_budget / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
-        actualAmount = Math.abs(dashboardData.ytd_expense_actual / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
+        budgetAmount = Math.abs(dashboardData!.ytd_expense_budget / dashboardData!.current_month * (viewState.selectedMonth || dashboardData!.current_month))
+        actualAmount = Math.abs(dashboardData!.ytd_expense_actual / dashboardData!.current_month * (viewState.selectedMonth || dashboardData!.current_month))
       }
     }
     
@@ -222,7 +222,7 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
                 actualAmount = monthlyCategory ? Math.abs(monthlyCategory.spent) : 0
               } else {
                 // Fallback calculation if monthly data not loaded
-                actualAmount = Math.abs(category.ytd_actual / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
+                actualAmount = Math.abs(category.ytd_actual / currentMonth * (viewState.selectedMonth || currentMonth))
               }
             }
             
@@ -354,16 +354,20 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
     )
   }
 
+  // TypeScript null check - we know dashboardData is not null at this point
+  const budget = dashboardData.budget
+  const currentMonth = dashboardData.current_month
+  
   return (
     <div className="space-y-6">
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 pb-4 mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{dashboardData.budget.name}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{budget.name}</h1>
             <p className="text-gray-600">
-              Year {dashboardData.budget.year} • 
-              YTD through {MONTHS[dashboardData.current_month - 1]}
+              Year {budget.year} • 
+              YTD through {MONTHS[currentMonth - 1]}
             </p>
           </div>
           
@@ -382,7 +386,7 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
               <button
                 onClick={() => setViewState({ 
                   period: 'monthly', 
-                  selectedMonth: dashboardData?.current_month || 1 
+                  selectedMonth: currentMonth || 1 
                 })}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
                   viewState.period === 'monthly'
@@ -396,7 +400,7 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
             
             {viewState.period === 'monthly' && (
               <select
-                value={viewState.selectedMonth || dashboardData?.current_month || 1}
+                value={viewState.selectedMonth || currentMonth || 1}
                 onChange={(e) => setViewState({ 
                   period: 'monthly', 
                   selectedMonth: parseInt(e.target.value) 
@@ -419,7 +423,7 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
         {/* Income Chart */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Income ({viewState.period === 'annual' ? 'YTD' : MONTHS[viewState.selectedMonth ? viewState.selectedMonth - 1 : dashboardData.current_month - 1]})
+            Income ({viewState.period === 'annual' ? 'YTD' : MONTHS[viewState.selectedMonth ? viewState.selectedMonth - 1 : currentMonth - 1]})
           </h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -437,7 +441,7 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
         {/* Expense Chart */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Expenses ({viewState.period === 'annual' ? 'YTD' : MONTHS[viewState.selectedMonth ? viewState.selectedMonth - 1 : dashboardData.current_month - 1]})
+            Expenses ({viewState.period === 'annual' ? 'YTD' : MONTHS[viewState.selectedMonth ? viewState.selectedMonth - 1 : currentMonth - 1]})
           </h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
