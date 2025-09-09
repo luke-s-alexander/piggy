@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import clsx from 'clsx'
 import type { Transaction } from '../types/transaction'
-import EditTransactionForm from './EditTransactionForm'
 
 interface TransactionTableProps {
   onTransactionChange?: () => void
@@ -39,11 +38,15 @@ interface Category {
   type: 'INCOME' | 'EXPENSE'
 }
 
+interface EditingCell {
+  transactionId: string
+  field: keyof Transaction
+}
+
 export default function TransactionTable({ onTransactionChange }: TransactionTableProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
   
   // Filters and sorting
@@ -60,13 +63,15 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
   const [sortField, setSortField] = useState<SortField>('transaction_date')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
-  // Data for filter dropdowns
+  // Data for filter dropdowns and inline editing
   const [accounts, setAccounts] = useState<Account[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   
   // View state
   const [showFilters, setShowFilters] = useState(false)
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set())
+  const [editingCell, setEditingCell] = useState<EditingCell | null>(null)
+  const [editValue, setEditValue] = useState<string>('')
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -154,18 +159,49 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
     }
   }
 
-  const handleEditSuccess = () => {
-    setEditingTransaction(null)
-    fetchTransactions()
-    fetchSummary()
-    onTransactionChange?.()
+  const updateTransaction = async (transactionId: string, field: keyof Transaction, value: string) => {
+    try {
+      const updateData: any = {}
+      updateData[field] = value
+
+      const response = await fetch(`${apiBaseUrl}/api/v1/transactions/${transactionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to update transaction: ${response.status}`)
+      }
+
+      // Refresh data after successful update
+      await fetchTransactions()
+      await fetchSummary()
+      onTransactionChange?.()
+    } catch (err) {
+      console.error('Failed to update transaction:', err)
+      setError(err instanceof Error ? err.message : 'Failed to update transaction')
+    }
   }
 
-  const handleDeleteSuccess = () => {
-    setEditingTransaction(null)
-    fetchTransactions()
-    fetchSummary()
-    onTransactionChange?.()
+  const startEditing = (transactionId: string, field: keyof Transaction, currentValue: string) => {
+    setEditingCell({ transactionId, field })
+    setEditValue(currentValue)
+  }
+
+  const saveEdit = async () => {
+    if (editingCell && editValue !== '') {
+      await updateTransaction(editingCell.transactionId, editingCell.field, editValue)
+    }
+    setEditingCell(null)
+    setEditValue('')
+  }
+
+  const cancelEdit = () => {
+    setEditingCell(null)
+    setEditValue('')
   }
 
   const formatAmount = (amount: string, type: 'INCOME' | 'EXPENSE') => {
@@ -244,6 +280,130 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
     )
   }
 
+  // Filter and search transactions (from original TransactionList)
+  const filteredAndSortedTransactions = useMemo(() => {
+    return transactions // Already filtered by backend
+  }, [transactions])
+
+  // Calculate summary statistics (from original TransactionList)  
+  const summaryStats = useMemo(() => {
+    if (!summary) return null
+    
+    return {
+      totalIncome: summary.total_income,
+      totalExpense: summary.total_expense,
+      netAmount: summary.net_amount,
+      transactionCount: summary.total_count
+    }
+  }, [summary])
+
+  const renderEditableCell = (transaction: Transaction, field: keyof Transaction, value: string, displayValue?: string) => {
+    const isEditing = editingCell?.transactionId === transaction.id && editingCell?.field === field
+
+    if (isEditing) {
+      if (field === 'category_id') {
+        return (
+          <select
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={saveEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveEdit()
+              if (e.key === 'Escape') cancelEdit()
+            }}
+            className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
+          >
+            {categories
+              .filter(cat => cat.type === transaction.type)
+              .map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))
+            }
+          </select>
+        )
+      } else if (field === 'account_id') {
+        return (
+          <select
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={saveEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveEdit()
+              if (e.key === 'Escape') cancelEdit()
+            }}
+            className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
+          >
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name}
+              </option>
+            ))}
+          </select>
+        )
+      } else if (field === 'transaction_date') {
+        return (
+          <input
+            type="date"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={saveEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveEdit()
+              if (e.key === 'Escape') cancelEdit()
+            }}
+            className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
+          />
+        )
+      } else if (field === 'amount') {
+        return (
+          <input
+            type="number"
+            step="0.01"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={saveEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveEdit()
+              if (e.key === 'Escape') cancelEdit()
+            }}
+            className="w-full px-2 py-1 text-sm border border-blue-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
+          />
+        )
+      } else {
+        return (
+          <input
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={saveEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveEdit()
+              if (e.key === 'Escape') cancelEdit()
+            }}
+            className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoFocus
+          />
+        )
+      }
+    }
+
+    return (
+      <span
+        onClick={() => startEditing(transaction.id, field, value)}
+        className="cursor-pointer hover:bg-blue-50 rounded px-1 py-0.5 -mx-1 -my-0.5 transition-colors"
+        title="Click to edit"
+      >
+        {displayValue || value}
+      </span>
+    )
+  }
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-4">
@@ -269,30 +429,6 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
     )
   }
 
-  if (editingTransaction) {
-    return (
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Edit Transaction</h2>
-          <button
-            onClick={() => setEditingTransaction(null)}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <EditTransactionForm
-          transaction={editingTransaction}
-          onCancel={() => setEditingTransaction(null)}
-          onSuccess={handleEditSuccess}
-          onDelete={handleDeleteSuccess}
-        />
-      </div>
-    )
-  }
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -303,6 +439,11 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
               {selectedTransactions.size} selected
             </span>
           )}
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span>
+              {summaryStats?.transactionCount || 0} transaction{(summaryStats?.transactionCount || 0) !== 1 ? 's' : ''}
+            </span>
+          </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={clsx(
@@ -332,20 +473,24 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Search */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Search Description</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
               <input
                 type="text"
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Search..."
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Search transactions..."
               />
             </div>
 
             {/* Type */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Filter</label>
               <select
                 value={filters.type}
                 onChange={(e) => handleFilterChange('type', e.target.value)}
@@ -440,30 +585,57 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
         </div>
       )}
 
-      {/* Summary Statistics */}
-      {summary && (
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-sm text-gray-500">Total Transactions</p>
-              <p className="text-lg font-semibold text-gray-900">{summary.total_count}</p>
+      {/* Summary Statistics (from TransactionList) */}
+      {summaryStats && (
+        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Transaction Summary</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-green-50 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-green-800 uppercase tracking-wide">Total Income</p>
+                  <p className="text-lg font-semibold text-green-900">
+                    ${summaryStats.totalIncome.toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-green-600 text-xl">💰</div>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-500">Total Income</p>
-              <p className="text-lg font-semibold text-green-600">+${summary.total_income.toFixed(2)}</p>
+            <div className="bg-red-50 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-red-800 uppercase tracking-wide">Total Expenses</p>
+                  <p className="text-lg font-semibold text-red-900">
+                    ${summaryStats.totalExpense.toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-red-600 text-xl">💸</div>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-500">Total Expenses</p>
-              <p className="text-lg font-semibold text-red-600">-${summary.total_expense.toFixed(2)}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-500">Net Amount</p>
-              <p className={clsx(
-                'text-lg font-semibold',
-                summary.net_amount >= 0 ? 'text-blue-600' : 'text-orange-600'
-              )}>
-                {summary.net_amount >= 0 ? '+' : ''}${summary.net_amount.toFixed(2)}
-              </p>
+            <div className={clsx(
+              'rounded-lg p-3',
+              summaryStats.netAmount >= 0 ? 'bg-blue-50' : 'bg-orange-50'
+            )}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={clsx(
+                    'text-xs font-medium uppercase tracking-wide',
+                    summaryStats.netAmount >= 0 ? 'text-blue-800' : 'text-orange-800'
+                  )}>Net Amount</p>
+                  <p className={clsx(
+                    'text-lg font-semibold',
+                    summaryStats.netAmount >= 0 ? 'text-blue-900' : 'text-orange-900'
+                  )}>
+                    ${summaryStats.netAmount >= 0 ? '+' : ''}${summaryStats.netAmount.toFixed(2)}
+                  </p>
+                </div>
+                <div className={clsx(
+                  'text-xl',
+                  summaryStats.netAmount >= 0 ? 'text-blue-600' : 'text-orange-600'
+                )}>
+                  {summaryStats.netAmount >= 0 ? '📈' : '📉'}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -558,27 +730,28 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
                   <tr
                     key={transaction.id}
                     className={clsx(
-                      'hover:bg-gray-50 cursor-pointer',
+                      'hover:bg-gray-50',
                       selectedTransactions.has(transaction.id) && 'bg-blue-50'
                     )}
-                    onClick={() => setEditingTransaction(transaction)}
                   >
                     <td className="px-4 py-4">
                       <input
                         type="checkbox"
                         checked={selectedTransactions.has(transaction.id)}
-                        onChange={(e) => {
-                          e.stopPropagation()
-                          toggleTransactionSelection(transaction.id)
-                        }}
+                        onChange={() => toggleTransactionSelection(transaction.id)}
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                       />
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(transaction.transaction_date)}
+                      {renderEditableCell(
+                        transaction, 
+                        'transaction_date', 
+                        transaction.transaction_date,
+                        formatDate(transaction.transaction_date)
+                      )}
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {transaction.description}
+                    <td className="px-4 py-4 text-sm text-gray-900 max-w-xs">
+                      {renderEditableCell(transaction, 'description', transaction.description)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className={clsx(
@@ -591,14 +764,29 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
                       </span>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.account?.name || 'Unknown'}
+                      {renderEditableCell(
+                        transaction,
+                        'account_id',
+                        transaction.account_id,
+                        transaction.account?.name || 'Unknown'
+                      )}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.category?.name || 'Uncategorized'}
+                      {renderEditableCell(
+                        transaction,
+                        'category_id',
+                        transaction.category_id,
+                        transaction.category?.name || 'Uncategorized'
+                      )}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <span className={getTransactionTypeColor(transaction.type)}>
-                        {formatAmount(transaction.amount, transaction.type)}
+                        {renderEditableCell(
+                          transaction,
+                          'amount',
+                          transaction.amount,
+                          formatAmount(transaction.amount, transaction.type)
+                        )}
                       </span>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
