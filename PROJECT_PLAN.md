@@ -534,16 +534,18 @@ ORDER BY h.symbol, hs.date;
 - [X] Add budget progress visualizations
 - [X] Budget overview dashboard
 - [X] Active flag for budgets
-- [ ] Editing existing budget: add categories, change amounts and set budget active/inactive
-- [ ] Make annual/month toggle on budget overview apply to all components on page
-- [ ] Styling on budget overview: off target rows in red, on target in green, near target yellow
+- [X] Editing existing budget: add categories, change amounts and set budget active/inactive
+- [X] Make annual/month toggle on budget overview apply to all components on page
+- [X] Styling on budget overview: off target rows in red, on target in green, near target yellow
 
 ### Phase 6: Bulk import transactions
+- [ ] Redesign transaction page for faster editing: 
+  - [ ] use a table format with headers. control sorting using header. make header sticky on scroll through table. 
+  - [ ] filter on transaction date, category, etc. 
+  - [ ] Edit fields directly from main listing page 
+  - [ ] condense design to fit more transactions per page
 - [ ] Bulk load transactions using standard csv template
 - [ ] Load transaction file formats from popular banks
-- [ ] Redesign transaction page for faster editing: 
-  - [ ] filter on transaction, category, etc. 
-  - [ ] Edit fields directly from main listing page 
 - [ ] Testing and bug fixes
 
 ### Phase 7: Net Worth Dashboard

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { Budget, BudgetWithLineItems, BudgetSummary, BudgetLineItem, Category } from '../types/budget'
+import type { Budget, BudgetWithLineItems, BudgetSummary, Category } from '../types/budget'
 
 interface BudgetDetailsProps {
   budget: Budget

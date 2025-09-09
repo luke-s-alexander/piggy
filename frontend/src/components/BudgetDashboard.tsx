@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface DashboardData {
@@ -34,6 +34,25 @@ interface ViewState {
   selectedMonth?: number
 }
 
+interface MonthlyCategory {
+  category_id: string
+  category_name: string
+  monthly_budget: number
+  spent: number
+  remaining: number
+  progress_percentage: number
+}
+
+interface MonthlyData {
+  month: number
+  year: number
+  budgeted_amount: number
+  spent_amount: number
+  remaining_amount: number
+  progress_percentage: number
+  categories: MonthlyCategory[]
+}
+
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
@@ -45,7 +64,7 @@ interface BudgetDashboardProps {
 
 export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps = {}) {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
-  const [monthlyData, setMonthlyData] = useState<any>(null)
+  const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [viewState, setViewState] = useState<ViewState>({ period: 'annual' })
@@ -54,11 +73,27 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
     fetchDashboardData()
   }, [])
 
+  const fetchMonthlyDataCallback = useCallback(async (month: number) => {
+    if (!dashboardData?.budget?.id) return
+    
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/budgets/${dashboardData.budget.id}/monthly/${month}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch monthly data')
+      }
+      const data = await response.json()
+      setMonthlyData(data)
+    } catch (err) {
+      console.error('Failed to load monthly data:', err)
+      setMonthlyData(null)
+    }
+  }, [dashboardData?.budget?.id])
+
   useEffect(() => {
     if (viewState.period === 'monthly' && viewState.selectedMonth && dashboardData) {
-      fetchMonthlyData(viewState.selectedMonth)
+      fetchMonthlyDataCallback(viewState.selectedMonth)
     }
-  }, [viewState.period, viewState.selectedMonth, dashboardData])
+  }, [viewState.period, viewState.selectedMonth, dashboardData, fetchMonthlyDataCallback])
 
   const fetchDashboardData = async () => {
     try {
@@ -75,21 +110,6 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
     }
   }
 
-  const fetchMonthlyData = async (month: number) => {
-    if (!dashboardData?.budget?.id) return
-    
-    try {
-      const response = await fetch(`http://localhost:8000/api/v1/budgets/${dashboardData.budget.id}/monthly/${month}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch monthly data')
-      }
-      const data = await response.json()
-      setMonthlyData(data)
-    } catch (err) {
-      console.error('Failed to load monthly data:', err)
-      setMonthlyData(null)
-    }
-  }
 
   const getIncomeChartData = () => {
     if (!dashboardData) return []
@@ -104,8 +124,8 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
       if (monthlyData) {
         budgetAmount = dashboardData.income_categories.reduce((sum, cat) => sum + cat.monthly_budget, 0)
         actualAmount = monthlyData.categories
-          .filter((cat: any) => dashboardData.income_categories.some(inc => inc.id === cat.category_id))
-          .reduce((sum: number, cat: any) => sum + Math.abs(cat.spent), 0)
+          .filter((cat) => dashboardData.income_categories.some(inc => inc.id === cat.category_id))
+          .reduce((sum, cat) => sum + Math.abs(cat.spent), 0)
       } else {
         budgetAmount = Math.abs(dashboardData.ytd_income_budget / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
         actualAmount = Math.abs(dashboardData.ytd_income_actual / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
@@ -137,8 +157,8 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
       if (monthlyData) {
         budgetAmount = dashboardData.expense_categories.reduce((sum, cat) => sum + cat.monthly_budget, 0)
         actualAmount = monthlyData.categories
-          .filter((cat: any) => dashboardData.expense_categories.some(exp => exp.id === cat.category_id))
-          .reduce((sum: number, cat: any) => sum + Math.abs(cat.spent), 0)
+          .filter((cat) => dashboardData.expense_categories.some(exp => exp.id === cat.category_id))
+          .reduce((sum, cat) => sum + Math.abs(cat.spent), 0)
       } else {
         budgetAmount = Math.abs(dashboardData.ytd_expense_budget / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
         actualAmount = Math.abs(dashboardData.ytd_expense_actual / dashboardData.current_month * (viewState.selectedMonth || dashboardData.current_month))
@@ -197,8 +217,8 @@ export default function BudgetDashboard({ onViewBudgets }: BudgetDashboardProps 
             } else {
               budgetAmount = category.monthly_budget
               // Find this category's monthly actual from monthlyData
-              if (monthlyData && monthlyData.categories) {
-                const monthlyCategory = monthlyData.categories.find((cat: any) => cat.category_id === category.id)
+              if (monthlyData?.categories) {
+                const monthlyCategory = monthlyData.categories.find((cat) => cat.category_id === category.id)
                 actualAmount = monthlyCategory ? Math.abs(monthlyCategory.spent) : 0
               } else {
                 // Fallback calculation if monthly data not loaded
