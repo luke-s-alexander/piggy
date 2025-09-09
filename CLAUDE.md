@@ -117,17 +117,18 @@ Key implementation in `backend/app/ml/categorizer.py`:
 
 ## Development Phases
 
-Current status: **Phase 1** (Project Setup)
+Current status: **Phase 6** (Bulk Import & Enhanced Transaction Management)
 
-The project is planned in 8 phases:
-1. **Foundation**: Set up frontend/backend structure and tooling
-2. **Data Layer**: Database schema, models, basic API routes  
-3. **Account Management**: Add/edit accounts with asset/liability categorization
-4. **Transaction Management**: CRUD operations with category assignment
-5. **Budget Management**: Yearly budgets with monthly tracking
-6. **Net Worth Dashboard**: Visualizations and trend analysis
-7. **Reports & Polish**: Advanced analytics and final touches
-8. **AI Categorization**: Implement hybrid rule-based + ML system
+The project is planned in 9 phases:
+1. **Foundation**: ✅ Set up frontend/backend structure and tooling
+2. **Data Layer**: ✅ Database schema, models, basic API routes  
+3. **Account Management**: ✅ Add/edit accounts with asset/liability categorization
+4. **Transaction Management**: ✅ CRUD operations with category assignment
+5. **Budget Management**: ✅ Yearly budgets with monthly tracking and dashboard
+6. **Bulk Import & Enhanced Transactions**: Table view, CSV imports, advanced filtering
+7. **Net Worth Dashboard**: Visualizations and trend analysis
+8. **Reports & Polish**: Advanced analytics and final touches
+9. **AI Categorization**: Implement hybrid rule-based + ML system
 
 Refer to PROJECT_PLAN.md for detailed phase breakdown and user stories.
 

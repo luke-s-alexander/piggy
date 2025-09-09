@@ -6,7 +6,9 @@
 🚀 **Phase 1 Complete**: Development environment fully set up and operational  
 🚀 **Phase 2 Complete**: Core Data Layer - Database models, API routes, and migrations implemented  
 🚀 **Phase 3 Complete**: Account Management - Enhanced UI, validation, soft delete, and user interactions
-🔧 **Current**: Phase 4 - Transaction Management (transaction entry forms, listing, and category management)
+🚀 **Phase 4 Complete**: Transaction Management - Full CRUD operations, category management, and search functionality
+🚀 **Phase 5 Complete**: Budget Management - Yearly budgets, monthly tracking, dashboard with YTD calculations
+🔧 **Current**: Phase 6 - Bulk Import & Enhanced Transaction Management
 
 ---
 
@@ -152,25 +154,24 @@ piggy/
 │   │   ├── main.py             # FastAPI app entry point
 │   │   ├── api/                # API routes
 │   │   │   ├── __init__.py
-│   │   │   ├── accounts.py
-│   │   │   ├── transactions.py
-│   │   │   ├── budget.py
-│   │   │   ├── categories.py
-│   │   │   └── reports.py
+│   │   │   ├── accounts.py      # ✅ Implemented
+│   │   │   ├── transactions.py # ✅ Implemented  
+│   │   │   ├── budget.py       # ✅ Implemented
+│   │   │   ├── categories.py   # ✅ Implemented
+│   │   │   ├── account_types.py # ✅ Implemented
+│   │   │   └── reports.py      # 🔄 Future
 │   │   ├── models/             # SQLAlchemy models
 │   │   │   ├── __init__.py
-│   │   │   ├── account.py
-│   │   │   ├── transaction.py
-│   │   │   ├── budget.py
-│   │   │   └── category.py
+│   │   │   ├── account.py      # ✅ Implemented
+│   │   │   ├── transaction.py  # ✅ Implemented
+│   │   │   ├── budget.py       # ✅ Implemented
+│   │   │   ├── category.py     # ✅ Implemented
+│   │   │   ├── account_type.py # ✅ Implemented
+│   │   │   └── balance_history.py # ✅ Implemented (not holdings-based)
 │   │   ├── services/           # Business logic
 │   │   │   ├── __init__.py
-│   │   │   ├── account_service.py
-│   │   │   ├── transaction_service.py
-│   │   │   ├── budget_service.py
-│   │   │   └── categorization_service.py
-│   │   ├── ml/                 # Machine learning components
-│   │   │   ├── __init__.py
+│   │   │   └── budget_service.py # ✅ Only service implemented so far
+│   │   ├── ml/                 # 🔄 Future - AI categorization components
 │   │   │   ├── categorizer.py
 │   │   │   ├── rules_engine.py
 │   │   │   └── model_trainer.py
@@ -205,9 +206,9 @@ piggy/
 ### Core Entity Tables
 
 ```sql
--- Account types for categorization
+-- Account types for categorization (✅ IMPLEMENTED)
 CREATE TABLE account_types (
-    id VARCHAR PRIMARY KEY,
+    id UUID PRIMARY KEY,
     name VARCHAR UNIQUE NOT NULL,  -- "Checking", "Credit Card", "Investment"
     category VARCHAR NOT NULL,     -- "ASSET" or "LIABILITY"
     sub_category VARCHAR NOT NULL, -- "cash", "investment", "debt", "real_estate"
@@ -215,12 +216,12 @@ CREATE TABLE account_types (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Financial accounts
+-- Financial accounts (✅ IMPLEMENTED)
 CREATE TABLE accounts (
-    id VARCHAR PRIMARY KEY,
+    id UUID PRIMARY KEY,
     name VARCHAR NOT NULL,          -- "Chase Checking", "Wealthsimple RRSP"
-    account_type_id VARCHAR NOT NULL,
-    balance DECIMAL(12, 2) NOT NULL, -- Current balance (derived from latest holdings)
+    account_type_id UUID NOT NULL,
+    balance DECIMAL(12, 2) NOT NULL, -- Current balance (updated directly)
     institution VARCHAR,            -- "Chase Bank", "Wealthsimple"
     account_number VARCHAR,         -- Last 4 digits
     currency VARCHAR DEFAULT 'CAD', -- Account currency
@@ -230,24 +231,22 @@ CREATE TABLE accounts (
     FOREIGN KEY (account_type_id) REFERENCES account_types(id)
 );
 
--- Individual holdings within accounts (stocks, ETFs, cash positions, etc.)
-CREATE TABLE holdings (
-    id VARCHAR PRIMARY KEY,
-    account_id VARCHAR NOT NULL,
-    symbol VARCHAR,                 -- "XIC", "AAPL", "CASH-CAD", null for loans/debt
-    name VARCHAR NOT NULL,          -- "iShares Core Canadian Index ETF", "Canadian Dollar Cash"
-    holding_type VARCHAR NOT NULL,  -- "ETF", "STOCK", "BOND", "CASH", "MUTUAL_FUND", "CRYPTO", "OTHER"
-    currency VARCHAR DEFAULT 'CAD', -- Holding currency
-    is_active BOOLEAN DEFAULT true,
+-- Balance history tracking (✅ IMPLEMENTED - simpler approach than holdings)
+CREATE TABLE balance_history (
+    id UUID PRIMARY KEY,
+    account_id UUID NOT NULL,
+    previous_balance DECIMAL(12, 2) NOT NULL, -- Balance before change
+    new_balance DECIMAL(12, 2) NOT NULL,      -- Balance after change  
+    change_amount DECIMAL(12, 2) NOT NULL,    -- Amount of change (+/-)
+    change_reason VARCHAR,                    -- "manual_update", "transaction", "correction"
+    notes TEXT,                               -- Additional context
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    FOREIGN KEY (account_id) REFERENCES accounts(id),
-    UNIQUE(account_id, symbol)      -- One holding per symbol per account
+    FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
--- Transaction categories
+-- Transaction categories (✅ IMPLEMENTED)
 CREATE TABLE categories (
-    id VARCHAR PRIMARY KEY,
+    id UUID PRIMARY KEY,
     name VARCHAR UNIQUE NOT NULL,   -- "Groceries", "Salary", "Utilities"
     type VARCHAR NOT NULL,          -- "INCOME" or "EXPENSE"
     color VARCHAR,                  -- For UI visualization
@@ -255,19 +254,19 @@ CREATE TABLE categories (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Individual transactions
+-- Individual transactions (✅ IMPLEMENTED)
 CREATE TABLE transactions (
-    id VARCHAR PRIMARY KEY,
-    account_id VARCHAR NOT NULL,
-    category_id VARCHAR NOT NULL,
+    id UUID PRIMARY KEY,
+    account_id UUID NOT NULL,
+    category_id UUID NOT NULL,
     amount DECIMAL(12, 2) NOT NULL,
     description VARCHAR NOT NULL,
-    date DATE NOT NULL,
+    transaction_date DATE NOT NULL,
     type VARCHAR NOT NULL,          -- "INCOME" or "EXPENSE"
-    ai_category_id VARCHAR,         -- AI suggested category
-    ai_confidence FLOAT,            -- Confidence score 0.0-1.0
-    is_ai_categorized BOOLEAN DEFAULT false,
-    user_corrected BOOLEAN DEFAULT false, -- For ML training
+    ai_category_id UUID,            -- AI suggested category (prepared for future)
+    ai_confidence FLOAT,            -- Confidence score 0.0-1.0 (prepared for future)
+    is_ai_categorized BOOLEAN DEFAULT false,  -- (prepared for future)
+    user_corrected BOOLEAN DEFAULT false,     -- For ML training (prepared for future)
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
     FOREIGN KEY (account_id) REFERENCES accounts(id),
@@ -275,22 +274,22 @@ CREATE TABLE transactions (
     FOREIGN KEY (ai_category_id) REFERENCES categories(id)
 );
 
--- Yearly budgets
+-- Yearly budgets (✅ IMPLEMENTED)
 CREATE TABLE budgets (
-    id VARCHAR PRIMARY KEY,
-    year INTEGER UNIQUE NOT NULL,
+    id UUID PRIMARY KEY,
+    year INTEGER NOT NULL,
     name VARCHAR NOT NULL,          -- "2024 Budget"
     total_amount DECIMAL(12, 2) NOT NULL,
-    is_active BOOLEAN DEFAULT true,
+    is_active BOOLEAN DEFAULT false, -- Only one active budget per year
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Budget allocation per category
+-- Budget allocation per category (✅ IMPLEMENTED)
 CREATE TABLE budget_line_items (
-    id VARCHAR PRIMARY KEY,
-    budget_id VARCHAR NOT NULL,
-    category_id VARCHAR NOT NULL,
+    id UUID PRIMARY KEY,
+    budget_id UUID NOT NULL,
+    category_id UUID NOT NULL,
     yearly_amount DECIMAL(12, 2) NOT NULL,
     monthly_amount DECIMAL(12, 2) NOT NULL, -- yearly_amount / 12
     created_at TIMESTAMP DEFAULT NOW(),
@@ -300,11 +299,11 @@ CREATE TABLE budget_line_items (
     UNIQUE(budget_id, category_id)
 );
 
--- Categorization rules and patterns
+-- Categorization rules and patterns (🔄 FUTURE - for AI implementation)
 CREATE TABLE categorization_rules (
-    id VARCHAR PRIMARY KEY,
+    id UUID PRIMARY KEY,
     pattern VARCHAR NOT NULL,       -- "McDonald's", "AMZN", etc.
-    category_id VARCHAR NOT NULL,
+    category_id UUID NOT NULL,
     confidence FLOAT NOT NULL,      -- Rule confidence
     is_user_defined BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT NOW(),
@@ -312,125 +311,69 @@ CREATE TABLE categorization_rules (
 );
 ```
 
-### Historical Tracking (Hybrid Approach)
+### Historical Balance Tracking (Simple Approach)
 
-**Single Source of Truth:** Only `holding_snapshots` table stores actual data  
-**Performance:** Database views provide fast aggregations without storage overhead  
-**Flexibility:** Easy to modify aggregation logic without backfilling data  
+**Current Implementation:** Simple balance change tracking via `balance_history`  
+**Future Enhancement:** Could expand to holdings-based tracking for investment accounts  
+**Performance:** Direct queries against balance_history for account balance trends  
 
 ```sql
--- ONLY table that stores historical data (single source of truth)
-CREATE TABLE holding_snapshots (
-    id VARCHAR PRIMARY KEY,
-    holding_id VARCHAR NOT NULL,
-    date DATE NOT NULL,
-    quantity DECIMAL(15, 6),        -- Shares/units owned (null for debt/cash balances)
-    unit_price DECIMAL(12, 4),      -- Price per share/unit (null for debt/cash)
-    book_value DECIMAL(12, 2),      -- Total cost basis
-    market_value DECIMAL(12, 2) NOT NULL, -- Current market value or balance
-    currency VARCHAR DEFAULT 'CAD',
-    created_at TIMESTAMP DEFAULT NOW(),
-    FOREIGN KEY (holding_id) REFERENCES holdings(id),
-    UNIQUE(holding_id, date)
-);
-
--- VIEWS for aggregated data (no storage overhead, always consistent)
-
--- Account balances over time (aggregated from holdings)
-CREATE VIEW account_balances_by_date AS
+-- Example: Account balance trends over time
 SELECT 
-    h.account_id,
-    hs.date,
-    SUM(hs.market_value) as total_value,
     a.name as account_name,
-    a.institution,
-    hs.currency
-FROM holding_snapshots hs
-JOIN holdings h ON hs.holding_id = h.id
-JOIN accounts a ON h.account_id = a.id
-GROUP BY h.account_id, hs.date, a.name, a.institution, hs.currency;
+    bh.created_at::date as date,
+    bh.new_balance,
+    bh.change_amount,
+    bh.change_reason
+FROM balance_history bh
+JOIN accounts a ON bh.account_id = a.id
+WHERE a.id = ?
+ORDER BY bh.created_at;
 
--- Account type totals over time 
-CREATE VIEW account_type_balances_by_date AS
+-- Example: Net worth calculation (current implementation)
 SELECT 
-    at.id as account_type_id,
-    at.name as account_type_name,
-    at.category,
-    at.sub_category,
-    hs.date,
-    SUM(hs.market_value) as total_value,
-    COUNT(DISTINCT a.id) as account_count,
-    hs.currency
-FROM holding_snapshots hs
-JOIN holdings h ON hs.holding_id = h.id
-JOIN accounts a ON h.account_id = a.id
+    SUM(CASE WHEN at.category = 'ASSET' THEN a.balance ELSE 0 END) as total_assets,
+    SUM(CASE WHEN at.category = 'LIABILITY' THEN a.balance ELSE 0 END) as total_liabilities,
+    SUM(CASE WHEN at.category = 'ASSET' THEN a.balance ELSE 0 END) - 
+    SUM(CASE WHEN at.category = 'LIABILITY' THEN a.balance ELSE 0 END) as net_worth
+FROM accounts a
 JOIN account_types at ON a.account_type_id = at.id
-WHERE a.is_active = true
-GROUP BY at.id, at.name, at.category, at.sub_category, hs.date, hs.currency;
-
--- Net worth over time (highest level aggregation)
-CREATE VIEW net_worth_by_date AS
-SELECT
-    hs.date,
-    SUM(CASE WHEN at.category = 'ASSET' THEN hs.market_value ELSE 0 END) as total_assets,
-    SUM(CASE WHEN at.category = 'LIABILITY' THEN hs.market_value ELSE 0 END) as total_liabilities,
-    SUM(CASE WHEN at.category = 'ASSET' THEN hs.market_value ELSE 0 END) - 
-    SUM(CASE WHEN at.category = 'LIABILITY' THEN hs.market_value ELSE 0 END) as net_worth,
-    -- Category breakdowns
-    SUM(CASE WHEN at.sub_category = 'cash' THEN hs.market_value ELSE 0 END) as cash_and_cash_equivalents,
-    SUM(CASE WHEN at.sub_category = 'investment' THEN hs.market_value ELSE 0 END) as investments,
-    SUM(CASE WHEN at.sub_category = 'real_estate' THEN hs.market_value ELSE 0 END) as real_estate,
-    SUM(CASE WHEN at.sub_category = 'debt' THEN hs.market_value ELSE 0 END) as debt,
-    hs.currency
-FROM holding_snapshots hs
-JOIN holdings h ON hs.holding_id = h.id  
-JOIN accounts a ON h.account_id = a.id
-JOIN account_types at ON a.account_type_id = at.id
-WHERE a.is_active = true
-GROUP BY hs.date, hs.currency;
+WHERE a.is_active = true;
 ```
 
-### Example Queries for Your Use Cases
+### Example Queries for Current Use Cases
 
 ```sql
--- Track XIC ETF performance in Wealthsimple RRSP between specific dates
+-- Transaction analysis by category and date range
 SELECT 
-    h.name,
-    a.name as account_name,
-    start_snap.market_value as start_value,
-    end_snap.market_value as end_value,
-    end_snap.market_value - start_snap.market_value as growth,
-    ROUND((end_snap.market_value - start_snap.market_value) / start_snap.market_value * 100, 2) as growth_percent
-FROM holdings h
-JOIN accounts a ON h.account_id = a.id
-JOIN holding_snapshots start_snap ON h.id = start_snap.holding_id AND start_snap.date = '2025-01-08'
-JOIN holding_snapshots end_snap ON h.id = end_snap.holding_id AND end_snap.date = '2025-04-06'
-WHERE h.symbol = 'XIC' AND a.name LIKE '%RRSP%';
+    c.name as category,
+    c.type,
+    SUM(t.amount) as total_amount,
+    COUNT(*) as transaction_count,
+    AVG(t.amount) as avg_amount
+FROM transactions t
+JOIN categories c ON t.category_id = c.id
+WHERE t.transaction_date BETWEEN '2024-01-01' AND '2024-12-31'
+GROUP BY c.id, c.name, c.type
+ORDER BY total_amount DESC;
 
--- All investment accounts performance over time (using view)
-SELECT date, total_value as total_investments
-FROM account_type_balances_by_date
-WHERE sub_category = 'investment'
-ORDER BY date;
-
--- Net worth trend with category breakdown (using view)
-SELECT date, net_worth, investments, cash_and_cash_equivalents, debt
-FROM net_worth_by_date
-ORDER BY date;
-
--- Individual holdings within an account over time
+-- Monthly budget vs actual analysis
 SELECT 
-    h.symbol,
-    h.name,
-    hs.date,
-    hs.market_value,
-    hs.quantity,
-    hs.unit_price
-FROM holdings h
-JOIN holding_snapshots hs ON h.id = hs.holding_id
-JOIN accounts a ON h.account_id = a.id
-WHERE a.name = 'Wealthsimple RRSP'
-ORDER BY h.symbol, hs.date;
+    EXTRACT(month from t.transaction_date) as month,
+    c.name as category,
+    bli.monthly_amount as budgeted,
+    COALESCE(SUM(t.amount), 0) as actual_spent,
+    bli.monthly_amount - COALESCE(SUM(t.amount), 0) as remaining
+FROM budget_line_items bli
+JOIN categories c ON bli.category_id = c.id
+JOIN budgets b ON bli.budget_id = b.id
+LEFT JOIN transactions t ON c.id = t.category_id 
+    AND t.type = 'EXPENSE'
+    AND EXTRACT(year from t.transaction_date) = b.year
+    AND EXTRACT(month from t.transaction_date) = 1  -- Example for January
+WHERE b.is_active = true
+GROUP BY month, c.id, c.name, bli.monthly_amount
+ORDER BY category;
 ```
 
 ---
@@ -519,24 +462,35 @@ ORDER BY h.symbol, hs.date;
 - Enhanced API validation with detailed error messages
 
 
-### Phase 4: Transaction Management
-**Current Phase** - Detailed Todo List:
-1. [X] Build transaction entry form with account and category selection
-2. [X] Add transaction editing functionality with validation and transaction deletion with confirmation dialog
-3. [X] Create category management interface for adding/editing/deleting categories
-4. [X] Implement transaction listing page with sorting and filtering and search functionality
-5. [X] Add transaction summary statistics (total income, expenses, net) and implement transaction type indicators (income vs expense) with visual styling
+### Phase 4: Transaction Management ✅ **COMPLETED**
+- [X] Build transaction entry form with account and category selection
+- [X] Add transaction editing functionality with validation and transaction deletion with confirmation dialog
+- [X] Create category management interface for adding/editing/deleting categories
+- [X] Implement transaction listing page with sorting and filtering and search functionality
+- [X] Add transaction summary statistics (total income, expenses, net) and implement transaction type indicators (income vs expense) with visual styling
 
-### Phase 5: Budget Management
+**Implementation Notes:**
+- Full CRUD operations for transactions with proper validation
+- Category management with add/edit/delete functionality
+- Advanced search and filtering capabilities
+- Transaction type indicators with visual styling
+- Confirmation dialogs for critical operations
+
+### Phase 5: Budget Management ✅ **COMPLETED**
 - [X] Build budget creation and management UI
 - [X] Implement yearly to monthly budget distribution
-- [X] Create budget vs actual tracking
-- [X] Add budget progress visualizations
-- [X] Budget overview dashboard
-- [X] Active flag for budgets
-- [X] Editing existing budget: add categories, change amounts and set budget active/inactive
-- [X] Make annual/month toggle on budget overview apply to all components on page
-- [X] Styling on budget overview: off target rows in red, on target in green, near target yellow
+- [X] Create budget vs actual tracking with YTD calculations
+- [X] Add budget progress visualizations and dashboard
+- [X] Active budget management (only one active per year)
+- [X] Editing existing budgets: add categories, change amounts and set budget active/inactive
+- [X] Annual/monthly toggle functionality across all components
+- [X] Visual styling: off target rows in red, on target in green, near target yellow
+
+**Implementation Notes:**
+- Complete budget service with dashboard data aggregation
+- YTD (Year-to-Date) calculations through any selected month
+- Visual progress indicators and color-coded budget status
+- BudgetDashboard and BudgetDetails components with comprehensive UI
 
 ### Phase 6: Bulk import transactions
 - [ ] Redesign transaction page for faster editing: 
@@ -761,5 +715,5 @@ open http://localhost:8000/docs
 
 ---
 
-*Last updated: September 6, 2025*
+*Last updated: September 9, 2025*
 *This document will be updated as the project evolves*
