@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import clsx from 'clsx'
 import type { Transaction } from '../types/transaction'
+import TransactionImport from './TransactionImport'
 
 interface TransactionTableProps {
   onTransactionChange?: () => void
@@ -457,6 +458,15 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
           >
             Filters {Object.values(filters).some(v => v) && '•'}
           </button>
+          <TransactionImport 
+            onImportComplete={() => {
+              fetchTransactions()
+              fetchSummary()
+              if (onTransactionChange) {
+                onTransactionChange()
+              }
+            }} 
+          />
         </div>
       </div>
 

@@ -1,13 +1,16 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query
+import io
+import pandas as pd
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
 from typing import List, Optional
-from datetime import date
-from decimal import Decimal
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 
 from app.core.database import get_db
-from app.models import Transaction as TransactionModel
+from app.models import Transaction as TransactionModel, Account as AccountModel, Category as CategoryModel
 from app.schemas import Transaction, TransactionCreate, TransactionUpdate
 
 router = APIRouter()
@@ -189,3 +192,228 @@ def delete_transaction(transaction_id: str, db: Session = Depends(get_db)):
     db.delete(transaction)
     db.commit()
     return {"message": "Transaction deleted successfully"}
+
+@router.get("/import/template")
+def download_import_template():
+    """Download CSV import template"""
+    template_path = "/Users/lalexander/projects/piggy/backend/app/templates/transaction_import_template.csv"
+    return FileResponse(
+        path=template_path,
+        filename="transaction_import_template.csv",
+        media_type="text/csv"
+    )
+
+@router.post("/import/preview")
+async def preview_transactions(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Preview transactions from CSV, XLS, or XLSX file before importing"""
+    
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
+    
+    file_extension = file.filename.lower().split('.')[-1]
+    if file_extension not in ['csv', 'xls', 'xlsx']:
+        raise HTTPException(
+            status_code=400, 
+            detail="File must be CSV, XLS, or XLSX format"
+        )
+    
+    try:
+        contents = await file.read()
+        
+        # Read the file into a pandas DataFrame
+        if file_extension == 'csv':
+            df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+        else:
+            df = pd.read_excel(io.BytesIO(contents))
+        
+        # Validate required columns
+        required_columns = ['transaction_date', 'description', 'amount', 'type', 'account_name', 'category_name']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required columns: {', '.join(missing_columns)}"
+            )
+        
+        # Process each row for validation
+        valid_count = 0
+        errors = []
+        preview_transactions = []
+        
+        for index, row in df.iterrows():
+            try:
+                # Validate and parse data
+                transaction_date = pd.to_datetime(row['transaction_date']).date()
+                description = str(row['description']).strip()
+                amount = Decimal(str(row['amount']))
+                transaction_type = str(row['type']).upper().strip()
+                account_name = str(row['account_name']).strip()
+                category_name = str(row['category_name']).strip()
+                
+                # Validate transaction type
+                if transaction_type not in ['INCOME', 'EXPENSE']:
+                    errors.append(f"Row {index + 2}: Invalid type '{transaction_type}'. Must be INCOME or EXPENSE")
+                    continue
+                
+                # Find account by name
+                account = db.query(AccountModel).filter(AccountModel.name == account_name).first()
+                if not account:
+                    errors.append(f"Row {index + 2}: Account '{account_name}' not found")
+                    continue
+                
+                # Find category by name and type
+                category = db.query(CategoryModel).filter(
+                    CategoryModel.name == category_name,
+                    CategoryModel.type == transaction_type
+                ).first()
+                if not category:
+                    errors.append(f"Row {index + 2}: Category '{category_name}' with type '{transaction_type}' not found")
+                    continue
+                
+                # If we get here, the transaction is valid
+                valid_count += 1
+                
+                # Add to preview (limit to first 10)
+                if len(preview_transactions) < 10:
+                    preview_transactions.append({
+                        "transaction_date": transaction_date.isoformat(),
+                        "description": description,
+                        "amount": float(amount),
+                        "type": transaction_type,
+                        "account_name": account_name,
+                        "category_name": category_name
+                    })
+                
+            except (ValueError, InvalidOperation, TypeError) as e:
+                errors.append(f"Row {index + 2}: Data validation error - {str(e)}")
+                continue
+            except Exception as e:
+                errors.append(f"Row {index + 2}: Unexpected error - {str(e)}")
+                continue
+        
+        return {
+            "valid_count": valid_count,
+            "total_rows": len(df),
+            "errors": errors,
+            "preview_transactions": preview_transactions
+        }
+        
+    except pd.errors.EmptyDataError:
+        raise HTTPException(status_code=400, detail="File is empty")
+    except pd.errors.ParserError:
+        raise HTTPException(status_code=400, detail="Unable to parse file. Please check the format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")
+
+@router.post("/import")
+async def import_transactions(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Import transactions from CSV, XLS, or XLSX file"""
+    
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
+    
+    file_extension = file.filename.lower().split('.')[-1]
+    if file_extension not in ['csv', 'xls', 'xlsx']:
+        raise HTTPException(
+            status_code=400, 
+            detail="File must be CSV, XLS, or XLSX format"
+        )
+    
+    try:
+        contents = await file.read()
+        
+        # Read the file into a pandas DataFrame
+        if file_extension == 'csv':
+            df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+        else:
+            df = pd.read_excel(io.BytesIO(contents))
+        
+        # Validate required columns
+        required_columns = ['transaction_date', 'description', 'amount', 'type', 'account_name', 'category_name']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required columns: {', '.join(missing_columns)}"
+            )
+        
+        # Process each row
+        imported_count = 0
+        errors = []
+        
+        for index, row in df.iterrows():
+            try:
+                # Validate and parse data
+                transaction_date = pd.to_datetime(row['transaction_date']).date()
+                description = str(row['description']).strip()
+                amount = Decimal(str(row['amount']))
+                transaction_type = str(row['type']).upper().strip()
+                account_name = str(row['account_name']).strip()
+                category_name = str(row['category_name']).strip()
+                
+                # Validate transaction type
+                if transaction_type not in ['INCOME', 'EXPENSE']:
+                    errors.append(f"Row {index + 2}: Invalid type '{transaction_type}'. Must be INCOME or EXPENSE")
+                    continue
+                
+                # Find account by name
+                account = db.query(AccountModel).filter(AccountModel.name == account_name).first()
+                if not account:
+                    errors.append(f"Row {index + 2}: Account '{account_name}' not found")
+                    continue
+                
+                # Find category by name and type
+                category = db.query(CategoryModel).filter(
+                    CategoryModel.name == category_name,
+                    CategoryModel.type == transaction_type
+                ).first()
+                if not category:
+                    errors.append(f"Row {index + 2}: Category '{category_name}' with type '{transaction_type}' not found")
+                    continue
+                
+                # Create transaction
+                db_transaction = TransactionModel(
+                    id=uuid.uuid4(),
+                    account_id=account.id,
+                    category_id=category.id,
+                    amount=amount,
+                    description=description,
+                    transaction_date=transaction_date,
+                    type=transaction_type
+                )
+                
+                db.add(db_transaction)
+                imported_count += 1
+                
+            except (ValueError, InvalidOperation, TypeError) as e:
+                errors.append(f"Row {index + 2}: Data validation error - {str(e)}")
+                continue
+            except Exception as e:
+                errors.append(f"Row {index + 2}: Unexpected error - {str(e)}")
+                continue
+        
+        # Commit if there are valid transactions
+        if imported_count > 0:
+            db.commit()
+        else:
+            db.rollback()
+        
+        return {
+            "imported_count": imported_count,
+            "total_rows": len(df),
+            "errors": errors
+        }
+        
+    except pd.errors.EmptyDataError:
+        raise HTTPException(status_code=400, detail="File is empty")
+    except pd.errors.ParserError:
+        raise HTTPException(status_code=400, detail="Unable to parse file. Please check the format")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
