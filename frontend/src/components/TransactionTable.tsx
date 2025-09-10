@@ -78,11 +78,13 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
   // Fetch reference data
   useEffect(() => {
     fetchReferenceData()
+    fetchTransactions() // Initial load with loader
+    fetchSummary()
   }, [])
 
   // Fetch transactions when filters or sorting change
   useEffect(() => {
-    fetchTransactions()
+    fetchTransactions(false) // Don't show loader for filter changes
     fetchSummary()
   }, [filters, sortField, sortDirection])
 
@@ -126,9 +128,9 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
     return params.toString()
   }, [filters, sortField, sortDirection])
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (showLoader = true) => {
     try {
-      setLoading(true)
+      if (showLoader) setLoading(true)
       const queryParams = buildQueryParams()
       const response = await fetch(`${apiBaseUrl}/api/v1/transactions/?${queryParams}`)
       
@@ -141,7 +143,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load transactions')
     } finally {
-      setLoading(false)
+      if (showLoader) setLoading(false)
     }
   }
 
@@ -177,7 +179,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
       }
 
       // Refresh data after successful update
-      await fetchTransactions()
+      await fetchTransactions(false) // Don't show loader for inline edit updates
       await fetchSummary()
       onTransactionChange?.()
     } catch (err) {
@@ -311,7 +313,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
               if (e.key === 'Enter') saveEdit()
               if (e.key === 'Escape') cancelEdit()
             }}
-            className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="min-w-0 w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             autoFocus
           >
             {categories
@@ -334,7 +336,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
               if (e.key === 'Enter') saveEdit()
               if (e.key === 'Escape') cancelEdit()
             }}
-            className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="min-w-0 w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             autoFocus
           >
             {accounts.map((account) => (
@@ -355,7 +357,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
               if (e.key === 'Enter') saveEdit()
               if (e.key === 'Escape') cancelEdit()
             }}
-            className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="min-w-0 w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             autoFocus
           />
         )
@@ -371,7 +373,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
               if (e.key === 'Enter') saveEdit()
               if (e.key === 'Escape') cancelEdit()
             }}
-            className="w-full px-2 py-1 text-sm border border-blue-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="min-w-0 w-full px-2 py-1 text-sm border border-blue-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
             autoFocus
           />
         )
@@ -386,7 +388,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
               if (e.key === 'Enter') saveEdit()
               if (e.key === 'Escape') cancelEdit()
             }}
-            className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="min-w-0 w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             autoFocus
           />
         )
@@ -473,19 +475,22 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Search */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Search</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Search transactions..."
+                />
               </div>
-              <input
-                type="text"
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Search transactions..."
-              />
             </div>
 
             {/* Type */}
@@ -494,7 +499,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
               <select
                 value={filters.type}
                 onChange={(e) => handleFilterChange('type', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Types</option>
                 <option value="INCOME">Income</option>
@@ -508,7 +513,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
               <select
                 value={filters.accountId}
                 onChange={(e) => handleFilterChange('accountId', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Accounts</option>
                 {accounts.map((account) => (
@@ -525,7 +530,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
               <select
                 value={filters.categoryId}
                 onChange={(e) => handleFilterChange('categoryId', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Categories</option>
                 {categories.map((category) => (
@@ -543,7 +548,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
@@ -553,7 +558,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
@@ -565,7 +570,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
                 step="0.01"
                 value={filters.minAmount}
                 onChange={(e) => handleFilterChange('minAmount', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="0.00"
               />
             </div>
@@ -577,7 +582,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
                 step="0.01"
                 value={filters.maxAmount}
                 onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="0.00"
               />
             </div>
