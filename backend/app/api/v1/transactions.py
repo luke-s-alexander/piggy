@@ -62,13 +62,15 @@ def get_transactions(
     # Apply search
     if search:
         search_term = f"%{search.lower()}%"
-        query = query.filter(
-            or_(
-                func.lower(TransactionModel.description).like(search_term),
-                # Note: We'd need to join with account/category for searching by name
-                # For now, just search description
-            )
-        )
+        query = query.join(AccountModel, TransactionModel.account_id == AccountModel.id) \
+                    .join(CategoryModel, TransactionModel.category_id == CategoryModel.id) \
+                    .filter(
+                        or_(
+                            func.lower(TransactionModel.description).like(search_term),
+                            func.lower(AccountModel.name).like(search_term),
+                            func.lower(CategoryModel.name).like(search_term)
+                        )
+                    )
     
     # Apply sorting
     if sort_by and hasattr(TransactionModel, sort_by):
@@ -119,7 +121,15 @@ def get_transaction_summary(
         
         if search:
             search_term = f"%{search.lower()}%"
-            query = query.filter(func.lower(TransactionModel.description).like(search_term))
+            query = query.join(AccountModel, TransactionModel.account_id == AccountModel.id) \
+                        .join(CategoryModel, TransactionModel.category_id == CategoryModel.id) \
+                        .filter(
+                            or_(
+                                func.lower(TransactionModel.description).like(search_term),
+                                func.lower(AccountModel.name).like(search_term),
+                                func.lower(CategoryModel.name).like(search_term)
+                            )
+                        )
         
         transactions = query.all()
         
