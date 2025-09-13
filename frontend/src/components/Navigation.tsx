@@ -2,12 +2,12 @@ import { Link, useLocation } from 'react-router-dom'
 import clsx from 'clsx'
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: '📊' },
-  { name: 'Accounts', href: '/accounts', icon: '🏦' },
-  { name: 'Transactions', href: '/transactions', icon: '💳' },
-  { name: 'Categories', href: '/categories', icon: '🏷️' },
-  { name: 'Budget', href: '/budget', icon: '💰' },
-  { name: 'Reports', href: '/reports', icon: '📈' },
+  { name: 'Dashboard', href: '/', icon: 'dashboard' },
+  { name: 'Accounts', href: '/accounts', icon: 'account_balance' },
+  { name: 'Transactions', href: '/transactions', icon: 'currency_exchange' },
+  { name: 'Categories', href: '/categories', icon: 'label' },
+  { name: 'Budget', href: '/budget', icon: 'savings' },
+  { name: 'Reports', href: '/reports', icon: 'query_stats' },
 ]
 
 export default function Navigation() {
@@ -34,7 +34,7 @@ export default function Navigation() {
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                 )}
               >
-                <span className="text-lg">{item.icon}</span>
+                <span className="material-icons text-lg">{item.icon}</span>
                 {item.name}
               </Link>
             </li>
