@@ -17,11 +17,11 @@ export default function Navigation() {
     <div className="bg-primary w-64 min-h-screen" style={{ color: '#131200' }}>
       <div className="p-4">
         <h1 className="text-xl font-bold flex items-center gap-2" style={{ color: '#131200' }}>
-          <span className="text-2xl">🐷</span>
+          <img src="/piggy-logo.svg" alt="Piggy" className="w-12 h-12" />
           Piggy
         </h1>
       </div>
-      <nav className="mt-8">
+      <nav className="mt-2">
         <ul className="space-y-2">
           {navigation.map((item) => (
             <li key={item.name}>
@@ -34,8 +34,7 @@ export default function Navigation() {
                     : 'hover:bg-secondary/80'
                 )}
                 style={{ 
-                  color: location.pathname === item.href ? 'white' : '#131200',
-                  opacity: location.pathname === item.href ? 1 : 1
+                  color: location.pathname === item.href ? 'white' : '#131200'
                 }}
               >
                 <span className="material-icons text-lg">{item.icon}</span>
