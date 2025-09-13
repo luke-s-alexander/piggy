@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     database_url: str = "postgresql://piggy:piggy@localhost:5432/piggy_dev"
     debug: bool = True
-    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    cors_origins: str = "http://localhost:3000,http://localhost:5173,http://localhost:5174"
     
     @property
     def cors_origins_list(self) -> list[str]:
