@@ -12,8 +12,17 @@ from decimal import Decimal, InvalidOperation
 from app.core.database import get_db
 from app.models import Transaction as TransactionModel, Account as AccountModel, Category as CategoryModel
 from app.schemas import Transaction, TransactionCreate, TransactionUpdate
+from pydantic import BaseModel
 
 router = APIRouter()
+
+# Bulk operations schemas
+class BulkUpdateRequest(BaseModel):
+    transaction_ids: List[str]
+    updates: dict
+
+class BulkDeleteRequest(BaseModel):
+    transaction_ids: List[str]
 
 @router.get("/", response_model=List[Transaction])
 def get_transactions(
@@ -133,6 +142,114 @@ def get_transaction_summary(
             "total_expense": 0.0,
             "net_amount": 0.0
         }
+
+@router.put("/bulk")
+async def bulk_update_transactions(
+    request: BulkUpdateRequest,
+    db: Session = Depends(get_db)
+):
+    """Bulk update multiple transactions"""
+    try:
+        # Validate that all transaction IDs exist
+        transactions = db.query(TransactionModel).filter(
+            TransactionModel.id.in_(request.transaction_ids)
+        ).all()
+        
+        if len(transactions) != len(request.transaction_ids):
+            found_ids = {str(t.id) for t in transactions}
+            missing_ids = set(request.transaction_ids) - found_ids
+            raise HTTPException(
+                status_code=404,
+                detail=f"Transactions not found: {', '.join(missing_ids)}"
+            )
+        
+        # Apply updates to all transactions
+        updated_count = 0
+        for transaction in transactions:
+            try:
+                # Update all provided fields (validation happens here)
+                for field, value in request.updates.items():
+                    if hasattr(transaction, field):
+                        # Handle type conversions
+                        if field == 'amount':
+                            value = Decimal(str(value))
+                        elif field == 'transaction_date':
+                            if isinstance(value, str):
+                                value = datetime.strptime(value, '%Y-%m-%d').date()
+                        
+                        setattr(transaction, field, value)
+                    else:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Invalid field: {field}"
+                        )
+                
+                updated_count += 1
+            except (ValueError, InvalidOperation) as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid value for transaction {transaction.id}: {str(e)}"
+                )
+        
+        db.commit()
+        
+        return {
+            "message": f"Successfully updated {updated_count} transactions",
+            "updated_count": updated_count
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Bulk update failed: {str(e)}"
+        )
+
+@router.delete("/bulk")
+async def bulk_delete_transactions(
+    request: BulkDeleteRequest,
+    db: Session = Depends(get_db)
+):
+    """Bulk delete multiple transactions"""
+    try:
+        # Validate that all transaction IDs exist
+        transactions = db.query(TransactionModel).filter(
+            TransactionModel.id.in_(request.transaction_ids)
+        ).all()
+        
+        if len(transactions) != len(request.transaction_ids):
+            found_ids = {str(t.id) for t in transactions}
+            missing_ids = set(request.transaction_ids) - found_ids
+            raise HTTPException(
+                status_code=404,
+                detail=f"Transactions not found: {', '.join(missing_ids)}"
+            )
+        
+        # Delete all transactions
+        deleted_count = 0
+        for transaction in transactions:
+            db.delete(transaction)
+            deleted_count += 1
+        
+        db.commit()
+        
+        return {
+            "message": f"Successfully deleted {deleted_count} transactions",
+            "deleted_count": deleted_count
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Bulk delete failed: {str(e)}"
+        )
 
 @router.get("/{transaction_id}", response_model=Transaction)
 def get_transaction(transaction_id: str, db: Session = Depends(get_db)):

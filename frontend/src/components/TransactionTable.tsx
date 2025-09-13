@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import clsx from 'clsx'
 import type { Transaction } from '../types/transaction'
 import TransactionImport from './TransactionImport'
+import BulkEditModal from './BulkEditModal'
 
 interface TransactionTableProps {
   onTransactionChange?: () => void
@@ -73,6 +74,8 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set())
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null)
   const [editValue, setEditValue] = useState<string>('')
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false)
+  const [bulkOperationLoading, setBulkOperationLoading] = useState(false)
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -264,6 +267,80 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
       setSelectedTransactions(new Set())
     } else {
       setSelectedTransactions(new Set(transactions.map(t => t.id)))
+    }
+  }
+
+  const handleBulkEdit = async (field: string, value: string) => {
+    if (selectedTransactions.size === 0) return
+
+    setBulkOperationLoading(true)
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/transactions/bulk`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transaction_ids: Array.from(selectedTransactions),
+          updates: { [field]: value }
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to bulk edit transactions: ${response.status}`)
+      }
+
+      // Refresh data after successful update
+      await fetchTransactions(false)
+      await fetchSummary()
+      onTransactionChange?.()
+      
+      // Clear selections and close modal
+      setSelectedTransactions(new Set())
+      setShowBulkEditModal(false)
+    } catch (err) {
+      console.error('Failed to bulk edit transactions:', err)
+      setError(err instanceof Error ? err.message : 'Failed to bulk edit transactions')
+    } finally {
+      setBulkOperationLoading(false)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedTransactions.size === 0) return
+
+    if (!confirm(`Are you sure you want to delete ${selectedTransactions.size} transactions? This action cannot be undone.`)) {
+      return
+    }
+
+    setBulkOperationLoading(true)
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/transactions/bulk`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transaction_ids: Array.from(selectedTransactions)
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to bulk delete transactions: ${response.status}`)
+      }
+
+      // Refresh data after successful delete
+      await fetchTransactions(false)
+      await fetchSummary()
+      onTransactionChange?.()
+      
+      // Clear selections
+      setSelectedTransactions(new Set())
+    } catch (err) {
+      console.error('Failed to bulk delete transactions:', err)
+      setError(err instanceof Error ? err.message : 'Failed to bulk delete transactions')
+    } finally {
+      setBulkOperationLoading(false)
     }
   }
 
@@ -469,6 +546,41 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
           />
         </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedTransactions.size > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-blue-800">
+                {selectedTransactions.size} transaction{selectedTransactions.size !== 1 ? 's' : ''} selected
+              </span>
+              <button
+                onClick={() => setSelectedTransactions(new Set())}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                Clear selection
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowBulkEditModal(true)}
+                disabled={bulkOperationLoading}
+                className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {bulkOperationLoading ? 'Processing...' : 'Edit Multiple'}
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkOperationLoading}
+                className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {bulkOperationLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Advanced Filters Panel */}
       {showFilters && (
@@ -824,6 +936,17 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
             </table>
           </div>
         </div>
+      )}
+
+      {/* Bulk Edit Modal */}
+      {showBulkEditModal && (
+        <BulkEditModal
+          selectedCount={selectedTransactions.size}
+          accounts={accounts}
+          categories={categories}
+          onClose={() => setShowBulkEditModal(false)}
+          onApplyEdit={handleBulkEdit}
+        />
       )}
     </div>
   )
