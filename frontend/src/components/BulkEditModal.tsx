@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 interface Account {
@@ -38,15 +38,46 @@ export default function BulkEditModal({
   const [selectedField, setSelectedField] = useState('')
   const [editValue, setEditValue] = useState('')
   const [fieldSearchTerm, setFieldSearchTerm] = useState('')
-  const [accountSearchTerm, setAccountSearchTerm] = useState('')
-  const [categorySearchTerm, setCategorySearchTerm] = useState('')
+  const [valueSearchTerm, setValueSearchTerm] = useState('')
+  const [showFieldDropdown, setShowFieldDropdown] = useState(false)
+  const [showValueDropdown, setShowValueDropdown] = useState(false)
+  
+  const fieldDropdownRef = useRef<HTMLDivElement>(null)
+  const valueDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Handle clicks outside dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (fieldDropdownRef.current && !fieldDropdownRef.current.contains(event.target as Node)) {
+        setShowFieldDropdown(false)
+      }
+      if (valueDropdownRef.current && !valueDropdownRef.current.contains(event.target as Node)) {
+        setShowValueDropdown(false)
+      }
+    }
+
+    if (showFieldDropdown || showValueDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showFieldDropdown, showValueDropdown])
 
   const handleFieldChange = (field: string) => {
     setSelectedField(field)
     setEditValue('')
     setFieldSearchTerm('')
-    setAccountSearchTerm('')
-    setCategorySearchTerm('')
+    setValueSearchTerm('')
+    setShowFieldDropdown(false)
+    setShowValueDropdown(false)
+  }
+
+  const handleValueChange = (value: string) => {
+    setEditValue(value)
+    setValueSearchTerm('')
+    setShowValueDropdown(false)
   }
 
   const handleApply = () => {
@@ -64,15 +95,34 @@ export default function BulkEditModal({
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter(account =>
-      account.name.toLowerCase().includes(accountSearchTerm.toLowerCase())
+      account.name.toLowerCase().includes(valueSearchTerm.toLowerCase())
     )
-  }, [accounts, accountSearchTerm])
+  }, [accounts, valueSearchTerm])
 
   const filteredCategories = useMemo(() => {
     return categories.filter(category =>
-      category.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
+      category.name.toLowerCase().includes(valueSearchTerm.toLowerCase())
     )
-  }, [categories, categorySearchTerm])
+  }, [categories, valueSearchTerm])
+
+  const getFieldDisplayName = () => {
+    const field = EDITABLE_FIELDS.find(f => f.key === selectedField)
+    return field ? field.label : 'Choose a field to edit'
+  }
+
+  const getValueDisplayName = () => {
+    const field = EDITABLE_FIELDS.find(f => f.key === selectedField)
+    if (!field) return ''
+    
+    if (field.key === 'account_id') {
+      const account = accounts.find(a => a.id === editValue)
+      return account ? account.name : 'Choose an account'
+    } else if (field.key === 'category_id') {
+      const category = categories.find(c => c.id === editValue)
+      return category ? category.name : 'Choose a category'
+    }
+    return editValue || `Enter ${field.label.toLowerCase()}`
+  }
 
   const renderValueInput = () => {
     const field = EDITABLE_FIELDS.find(f => f.key === selectedField)
@@ -109,7 +159,7 @@ export default function BulkEditModal({
             step="0.01"
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="0.00"
             autoFocus
           />
@@ -118,52 +168,85 @@ export default function BulkEditModal({
       case 'select':
         if (selectedField === 'account_id') {
           return (
-            <div className="space-y-2">
-              <input
-                type="text"
-                placeholder="Search accounts..."
-                value={accountSearchTerm}
-                onChange={(e) => setAccountSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <select
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                size={Math.min(filteredAccounts.length + 1, 6)}
+            <div className="relative" ref={valueDropdownRef}>
+              <div
+                onClick={() => setShowValueDropdown(!showValueDropdown)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
               >
-                <option value="">Select an account</option>
-                {filteredAccounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-              </select>
+                <span className={editValue ? 'text-gray-900' : 'text-gray-500'}>
+                  {getValueDisplayName()}
+                </span>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              {showValueDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                  <div className="p-2 border-b border-gray-200">
+                    <input
+                      type="text"
+                      placeholder="Search accounts..."
+                      value={valueSearchTerm}
+                      onChange={(e) => setValueSearchTerm(e.target.value)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    {filteredAccounts.map((account) => (
+                      <div
+                        key={account.id}
+                        onClick={() => handleValueChange(account.id)}
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-900"
+                      >
+                        {account.name}
+                      </div>
+                    ))}
+                    {filteredAccounts.length === 0 && (
+                      <div className="px-3 py-2 text-sm text-gray-500">
+                        No accounts found
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )
         } else if (selectedField === 'category_id') {
           return (
-            <div className="space-y-2">
+            <div className="relative" ref={valueDropdownRef}>
               <input
                 type="text"
-                placeholder="Search categories..."
-                value={categorySearchTerm}
-                onChange={(e) => setCategorySearchTerm(e.target.value)}
+                value={editValue ? getValueDisplayName() : valueSearchTerm}
+                onChange={(e) => {
+                  setValueSearchTerm(e.target.value)
+                  setEditValue('')
+                  setShowValueDropdown(true)
+                }}
+                onFocus={() => setShowValueDropdown(true)}
+                placeholder="Choose a category"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <select
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                size={Math.min(filteredCategories.length + 1, 6)}
-              >
-                <option value="">Select a category</option>
-                {filteredCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name} ({category.type})
-                  </option>
-                ))}
-              </select>
+              {showValueDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                  <div className="max-h-48 overflow-y-auto">
+                    {filteredCategories.map((category) => (
+                      <div
+                        key={category.id}
+                        onClick={() => handleValueChange(category.id)}
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-900"
+                      >
+                        {category.name}
+                      </div>
+                    ))}
+                    {filteredCategories.length === 0 && valueSearchTerm && (
+                      <div className="px-3 py-2 text-sm text-gray-500">
+                        No categories found
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )
         }
@@ -180,6 +263,12 @@ export default function BulkEditModal({
       style={{
         backgroundColor: 'rgba(0, 0, 0, 0.75)',
         backdropFilter: 'blur(2px)'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setShowFieldDropdown(false)
+          setShowValueDropdown(false)
+        }
       }}
     >
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
@@ -200,36 +289,49 @@ export default function BulkEditModal({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Field to Edit
+              Field
             </label>
-            <div className="space-y-2">
+            <div className="relative" ref={fieldDropdownRef}>
               <input
                 type="text"
-                placeholder="Search fields..."
-                value={fieldSearchTerm}
-                onChange={(e) => setFieldSearchTerm(e.target.value)}
+                value={selectedField ? getFieldDisplayName() : fieldSearchTerm}
+                onChange={(e) => {
+                  setFieldSearchTerm(e.target.value)
+                  setSelectedField('')
+                  setEditValue('')
+                  setShowFieldDropdown(true)
+                }}
+                onFocus={() => setShowFieldDropdown(true)}
+                placeholder="Choose a field to edit"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <select
-                value={selectedField}
-                onChange={(e) => handleFieldChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                size={Math.min(filteredFields.length + 1, 6)}
-              >
-                <option value="">Select a field</option>
-                {filteredFields.map((field) => (
-                  <option key={field.key} value={field.key}>
-                    {field.label}
-                  </option>
-                ))}
-              </select>
+              {showFieldDropdown && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                  <div className="max-h-48 overflow-y-auto">
+                    {filteredFields.map((field) => (
+                      <div
+                        key={field.key}
+                        onClick={() => handleFieldChange(field.key)}
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-900"
+                      >
+                        {field.label}
+                      </div>
+                    ))}
+                    {filteredFields.length === 0 && fieldSearchTerm && (
+                      <div className="px-3 py-2 text-sm text-gray-500">
+                        No fields found
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {selectedField && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                New Value
+                Value
               </label>
               {renderValueInput()}
             </div>
