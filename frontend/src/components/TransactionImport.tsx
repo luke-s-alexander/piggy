@@ -164,7 +164,7 @@ export default function TransactionImport({ onImportComplete }: TransactionImpor
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Import Transactions</h3>
               <button
@@ -182,7 +182,7 @@ export default function TransactionImport({ onImportComplete }: TransactionImpor
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h4 className="text-sm font-medium text-blue-800 mb-2">Required Format</h4>
                   <p className="text-sm text-blue-700 mb-3">
-                    Your file must include these columns: transaction_date, description, amount, type, account_name, category_name
+                    Your file must include these columns: transaction_date, description, amount, account_name, category_name
                   </p>
                   <button
                     onClick={downloadTemplate}
@@ -246,22 +246,21 @@ export default function TransactionImport({ onImportComplete }: TransactionImpor
                 {previewResult.valid_count > 0 && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <h4 className="text-sm font-medium text-gray-800 mb-3">Sample Transactions</h4>
-                    <div className="max-h-48 overflow-y-auto">
-                      <div className="space-y-2">
-                        {previewResult.preview_transactions.slice(0, 3).map((transaction, index) => (
-                          <div key={index} className="bg-white rounded p-3 border">
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div><span className="font-medium">Date:</span> {transaction.transaction_date}</div>
-                              <div><span className="font-medium">Amount:</span> ${transaction.amount.toFixed(2)}</div>
-                              <div><span className="font-medium">Type:</span> {transaction.type}</div>
-                              <div><span className="font-medium">Account:</span> {transaction.account_name}</div>
-                              <div className="col-span-2"><span className="font-medium">Description:</span> {transaction.description}</div>
-                              <div><span className="font-medium">Category:</span> {transaction.category_name}</div>
+                    <div className="max-h-32 overflow-y-auto">
+                      <div className="space-y-1">
+                        {previewResult.preview_transactions.slice(0, 5).map((transaction, index) => (
+                          <div key={index} className="bg-white rounded px-3 py-2 border text-xs">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">{transaction.transaction_date}</span>
+                              <span className="font-semibold">${transaction.amount.toFixed(2)}</span>
+                            </div>
+                            <div className="text-gray-600 mt-1">
+                              {transaction.description} • {transaction.account_name} • {transaction.category_name}
                             </div>
                           </div>
                         ))}
-                        {previewResult.preview_transactions.length > 3 && (
-                          <p className="text-xs text-gray-500 text-center">... and {previewResult.preview_transactions.length - 3} more transactions</p>
+                        {previewResult.preview_transactions.length > 5 && (
+                          <p className="text-xs text-gray-500 text-center pt-1">... and {previewResult.preview_transactions.length - 5} more transactions</p>
                         )}
                       </div>
                     </div>

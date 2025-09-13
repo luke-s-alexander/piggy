@@ -230,7 +230,7 @@ async def preview_transactions(
             df = pd.read_excel(io.BytesIO(contents))
         
         # Validate required columns
-        required_columns = ['transaction_date', 'description', 'amount', 'type', 'account_name', 'category_name']
+        required_columns = ['transaction_date', 'description', 'amount', 'account_name', 'category_name']
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             raise HTTPException(
@@ -249,14 +249,8 @@ async def preview_transactions(
                 transaction_date = pd.to_datetime(row['transaction_date']).date()
                 description = str(row['description']).strip()
                 amount = Decimal(str(row['amount']))
-                transaction_type = str(row['type']).upper().strip()
                 account_name = str(row['account_name']).strip()
                 category_name = str(row['category_name']).strip()
-                
-                # Validate transaction type
-                if transaction_type not in ['INCOME', 'EXPENSE']:
-                    errors.append(f"Row {index + 2}: Invalid type '{transaction_type}'. Must be INCOME or EXPENSE")
-                    continue
                 
                 # Find account by name
                 account = db.query(AccountModel).filter(AccountModel.name == account_name).first()
@@ -264,14 +258,16 @@ async def preview_transactions(
                     errors.append(f"Row {index + 2}: Account '{account_name}' not found")
                     continue
                 
-                # Find category by name and type
+                # Find category by name (infer type from category)
                 category = db.query(CategoryModel).filter(
-                    CategoryModel.name == category_name,
-                    CategoryModel.type == transaction_type
+                    CategoryModel.name == category_name
                 ).first()
                 if not category:
-                    errors.append(f"Row {index + 2}: Category '{category_name}' with type '{transaction_type}' not found")
+                    errors.append(f"Row {index + 2}: Category '{category_name}' not found")
                     continue
+                
+                # Infer transaction type from category
+                transaction_type = category.type
                 
                 # If we get here, the transaction is valid
                 valid_count += 1
@@ -335,7 +331,7 @@ async def import_transactions(
             df = pd.read_excel(io.BytesIO(contents))
         
         # Validate required columns
-        required_columns = ['transaction_date', 'description', 'amount', 'type', 'account_name', 'category_name']
+        required_columns = ['transaction_date', 'description', 'amount', 'account_name', 'category_name']
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             raise HTTPException(
@@ -353,14 +349,8 @@ async def import_transactions(
                 transaction_date = pd.to_datetime(row['transaction_date']).date()
                 description = str(row['description']).strip()
                 amount = Decimal(str(row['amount']))
-                transaction_type = str(row['type']).upper().strip()
                 account_name = str(row['account_name']).strip()
                 category_name = str(row['category_name']).strip()
-                
-                # Validate transaction type
-                if transaction_type not in ['INCOME', 'EXPENSE']:
-                    errors.append(f"Row {index + 2}: Invalid type '{transaction_type}'. Must be INCOME or EXPENSE")
-                    continue
                 
                 # Find account by name
                 account = db.query(AccountModel).filter(AccountModel.name == account_name).first()
@@ -368,14 +358,16 @@ async def import_transactions(
                     errors.append(f"Row {index + 2}: Account '{account_name}' not found")
                     continue
                 
-                # Find category by name and type
+                # Find category by name (infer type from category)
                 category = db.query(CategoryModel).filter(
-                    CategoryModel.name == category_name,
-                    CategoryModel.type == transaction_type
+                    CategoryModel.name == category_name
                 ).first()
                 if not category:
-                    errors.append(f"Row {index + 2}: Category '{category_name}' with type '{transaction_type}' not found")
+                    errors.append(f"Row {index + 2}: Category '{category_name}' not found")
                     continue
+                
+                # Infer transaction type from category
+                transaction_type = category.type
                 
                 # Create transaction
                 db_transaction = TransactionModel(
