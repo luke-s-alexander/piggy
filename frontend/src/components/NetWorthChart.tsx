@@ -16,42 +16,60 @@ interface NetWorthChartProps {
 // Mock data generator - will be replaced with API data
 function generateMockData(timeRange: string): NetWorthDataPoint[] {
   const now = new Date()
-  let days: number
-  let interval: number
-
-  switch (timeRange) {
-    case '1M':
-      days = 30
-      interval = 1 // daily
-      break
-    case '3M':
-      days = 90
-      interval = 3 // every 3 days
-      break
-    case '6M':
-      days = 180
-      interval = 7 // weekly
-      break
-    case '1Y':
-      days = 365
-      interval = 14 // bi-weekly
-      break
-    case 'ALL':
-    default:
-      days = 730 // 2 years
-      interval = 30 // monthly
-      break
-  }
-
   const data: NetWorthDataPoint[] = []
   const baseNetWorth = 90000
   
-  for (let i = days; i >= 0; i -= interval) {
-    const date = new Date(now)
-    date.setDate(date.getDate() - i)
+  // Create consistent time intervals based on time range
+  const getDatePoints = (timeRange: string) => {
+    const points: Date[] = []
+    const endDate = new Date(now)
+    let startDate: Date
+    let interval: number // days
     
+    switch (timeRange) {
+      case '1M':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
+        interval = 2 // every 2 days
+        break
+      case '3M':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
+        interval = 7 // weekly
+        break
+      case '6M':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())
+        interval = 14 // bi-weekly
+        break
+      case '1Y':
+        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
+        interval = 30 // monthly
+        break
+      case 'ALL':
+      default:
+        startDate = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate())
+        interval = 30 // monthly
+        break
+    }
+    
+    let currentDate = new Date(startDate)
+    while (currentDate <= endDate) {
+      points.push(new Date(currentDate))
+      currentDate.setDate(currentDate.getDate() + interval)
+    }
+    
+    // Always include the end date if it's not already included
+    if (points.length === 0 || points[points.length - 1].getTime() !== endDate.getTime()) {
+      points.push(endDate)
+    }
+    
+    return points
+  }
+  
+  const datePoints = getDatePoints(timeRange)
+  const totalDays = (datePoints[datePoints.length - 1].getTime() - datePoints[0].getTime()) / (1000 * 3600 * 24)
+  
+  datePoints.forEach((date, index) => {
     // Simulate growth with some volatility
-    const progress = (days - i) / days
+    const progress = index / (datePoints.length - 1)
     const trend = progress * 8000 // 8k growth over period
     const volatility = (Math.random() - 0.5) * 2000 // +/- 1k random
     
@@ -65,7 +83,7 @@ function generateMockData(timeRange: string): NetWorthDataPoint[] {
       assets: Math.round(assets),
       liabilities: Math.round(liabilities),
     })
-  }
+  })
 
   return data
 }
@@ -181,7 +199,16 @@ export default function NetWorthChart({ timeRange }: NetWorthChartProps) {
     return interpolateData(rawData)
   }, [timeRange])
 
-  const tickCount = timeRange === '1M' ? 6 : timeRange === '3M' ? 4 : 6
+  // Calculate appropriate tick interval for consistent spacing
+  const getTickInterval = () => {
+    const dataLength = chartData.length
+    if (dataLength <= 40) return 0 // Show all ticks
+    if (timeRange === '1M') return Math.ceil(dataLength / 40)
+    if (timeRange === '3M') return Math.ceil(dataLength / 40)
+    if (timeRange === '6M') return Math.ceil(dataLength / 40)
+    if (timeRange === '1Y') return Math.ceil(dataLength / 40)
+    return Math.ceil(dataLength / 20) // ALL
+  }
 
   return (
     <div className="h-80">
@@ -198,7 +225,8 @@ export default function NetWorthChart({ timeRange }: NetWorthChartProps) {
             dataKey="date" 
             tick={{ fontSize: 12 }}
             tickFormatter={(value) => formatDate(value, timeRange)}
-            tickCount={tickCount}
+            interval={getTickInterval()}
+            minTickGap={30}
           />
           <YAxis 
             tick={{ fontSize: 12 }}
