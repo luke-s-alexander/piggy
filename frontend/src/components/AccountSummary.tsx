@@ -113,7 +113,7 @@ export default function AccountSummary({ refreshTrigger }: AccountSummaryProps) 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       {/* Net Worth */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6">
+      <div className="text-white rounded-lg p-6" style={{ background: '#6A5B6E' }}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-blue-100 text-sm font-medium">Net Worth</p>
@@ -131,28 +131,28 @@ export default function AccountSummary({ refreshTrigger }: AccountSummaryProps) 
       </div>
 
       {/* Total Assets */}
-      <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6">
+      <div className="text-white rounded-lg p-6" style={{ background: '#024F47' }}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-green-100 text-sm font-medium">Total Assets</p>
+            <p className="text-white opacity-80 text-sm font-medium">Total Assets</p>
             <p className="text-2xl font-bold">{formatCurrency(summary.totalAssets)}</p>
           </div>
-          <div className="text-green-200">
+          <div className="text-white opacity-70">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
             </svg>
           </div>
         </div>
-        <p className="text-green-100 text-xs mt-2">
+        <p className="text-white opacity-80 text-xs mt-2">
           {summary.assetCount} asset accounts
         </p>
       </div>
 
       {/* Total Liabilities */}
-      <div className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg p-6">
+      <div className="text-white rounded-lg p-6" style={{ background: '#F8333C' }}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-red-100 text-sm font-medium">Total Liabilities</p>
+          <p className="text-white opacity-80 text-sm font-medium">Total Liabilities</p>
             <p className="text-2xl font-bold">{formatCurrency(summary.totalLiabilities)}</p>
           </div>
           <div className="text-red-200">

@@ -269,7 +269,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
       setSelectedTransactions(new Set(transactions.map(t => t.id)))
     }
   }
-
+          
   const handleBulkEdit = async (field: string, value: string) => {
     if (selectedTransactions.size === 0) return
 
@@ -581,6 +581,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
           </div>
         </div>
       )}
+
       {/* Advanced Filters Panel */}
       {showFilters && (
         <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-4">
@@ -609,7 +610,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
                   value={filters.search}
                   onChange={(e) => handleFilterChange('search', e.target.value)}
                   className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Search by description, account, or category..."
+                  placeholder="Search transactions..."
                 />
               </div>
             </div>
@@ -936,7 +937,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
           </div>
         </div>
       )}
-
+      
       {/* Bulk Edit Modal */}
       {showBulkEditModal && (
         <BulkEditModal
