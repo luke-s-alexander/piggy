@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 interface ImportResult {
   imported_count: number
@@ -162,8 +163,14 @@ export default function TransactionImport({ onImportComplete }: TransactionImpor
         Import
       </button>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      {showModal && createPortal(
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-[9999]"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(2px)'
+          }}
+        >
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Import Transactions</h3>
@@ -323,7 +330,8 @@ export default function TransactionImport({ onImportComplete }: TransactionImpor
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
