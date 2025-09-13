@@ -1,0 +1,4 @@
+transaction_date,description,amount,account_name,category_name
+2024-01-01,Sample grocery purchase,50.00,TD Checking Account,Groceries
+2024-01-01,Salary payment,3500.00,High Interest Savings Account,Salary
+2024-01-02,Gas station,45.75,TD Checking Account,Transportation

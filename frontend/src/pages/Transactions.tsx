@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import AddTransactionForm from '../components/AddTransactionForm'
-import TransactionList from '../components/TransactionList'
+import TransactionTable from '../components/TransactionTable'
 
 export default function Transactions() {
   const [showAddForm, setShowAddForm] = useState(false)
@@ -39,7 +39,7 @@ export default function Transactions() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow p-6">
-          <TransactionList onTransactionChange={handleTransactionChange} />
+          <TransactionTable onTransactionChange={handleTransactionChange} />
         </div>
       )}
     </div>
