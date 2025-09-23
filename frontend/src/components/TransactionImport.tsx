@@ -295,22 +295,22 @@ export default function TransactionImport({ onImportComplete }: TransactionImpor
             ) : (
               <div className="space-y-4">
                 <div className={`border rounded-lg p-4 ${
-                  importResult.imported_count > 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                  importResult?.imported_count && importResult.imported_count > 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                 }`}>
                   <h4 className={`text-sm font-medium mb-2 ${
-                    importResult.imported_count > 0 ? 'text-green-800' : 'text-red-800'
+                    importResult?.imported_count && importResult.imported_count > 0 ? 'text-green-800' : 'text-red-800'
                   }`}>
                     Import Results
                   </h4>
                   <div className="text-sm space-y-1">
-                    <p className={importResult.imported_count > 0 ? 'text-green-700' : 'text-red-700'}>
-                      Successfully imported: {importResult.imported_count} out of {importResult.total_rows} transactions
+                    <p className={importResult?.imported_count && importResult.imported_count > 0 ? 'text-green-700' : 'text-red-700'}>
+                      Successfully imported: {importResult?.imported_count ?? 0} out of {importResult?.total_rows ?? 0} transactions
                     </p>
-                    {importResult.errors.length > 0 && (
+                    {importResult?.errors && importResult.errors.length > 0 && (
                       <div className="mt-3">
                         <p className="text-red-700 font-medium">Errors:</p>
                         <div className="max-h-32 overflow-y-auto">
-                          {importResult.errors.map((error, index) => (
+                          {importResult?.errors?.map((error, index) => (
                             <p key={index} className="text-red-600 text-xs mt-1">{error}</p>
                           ))}
                         </div>

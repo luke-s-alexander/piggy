@@ -51,7 +51,7 @@ function generateMockData(timeRange: string): NetWorthDataPoint[] {
         break
     }
     
-    let currentDate = new Date(startDate)
+    const currentDate = new Date(startDate)
     while (currentDate <= endDate) {
       points.push(new Date(currentDate))
       currentDate.setDate(currentDate.getDate() + interval)

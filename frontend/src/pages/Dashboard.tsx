@@ -6,7 +6,8 @@ import NetWorthSummary from '../components/NetWorthSummary'
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('6M')
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
+  // TODO: Add refresh functionality when backend integration is complete
+  const refreshTrigger = 0
 
   const timeRangeOptions = [
     { value: '1M', label: '1M' },
