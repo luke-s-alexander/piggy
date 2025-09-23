@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface CategoryDataPoint {
@@ -51,38 +52,117 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   )
 }
 
-export default function CategoryBreakdown() {
-  // Mock data - will be replaced with real API data from account types
-  const data: CategoryDataPoint[] = [
-    {
-      name: 'Checking',
-      assets: 1453.23,
-      liabilities: 0,
-      net: 1453.23,
-      icon: 'account_balance'
-    },
-    {
-      name: 'Savings',
-      assets: 3204.38,
-      liabilities: 0,
-      net: 3204.38,
-      icon: 'savings'
-    },
-    {
-      name: 'Investment',
-      assets: 93039.24,
-      liabilities: 0,
-      net: 93039.24,
-      icon: 'trending_up'
-    },
-    {
-      name: 'Credit Card',
-      assets: 0,
-      liabilities: 3242.00,
-      net: -3242.00,
-      icon: 'credit_card'
+interface CategoryBreakdownProps {
+  refreshTrigger?: number
+}
+
+export default function CategoryBreakdown({ refreshTrigger }: CategoryBreakdownProps) {
+  const [data, setData] = useState<CategoryDataPoint[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchCategoryData()
+  }, [refreshTrigger])
+
+  const fetchCategoryData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // For now, simulate API call with mock data
+      // TODO: Replace with actual API call to backend
+      await new Promise(resolve => setTimeout(resolve, 1200)) // Simulate API delay
+      
+      const mockData: CategoryDataPoint[] = [
+        {
+          name: 'Checking',
+          assets: 1453.23,
+          liabilities: 0,
+          net: 1453.23,
+          icon: 'account_balance'
+        },
+        {
+          name: 'Savings',
+          assets: 3204.38,
+          liabilities: 0,
+          net: 3204.38,
+          icon: 'savings'
+        },
+        {
+          name: 'Investment',
+          assets: 93039.24,
+          liabilities: 0,
+          net: 93039.24,
+          icon: 'trending_up'
+        },
+        {
+          name: 'Credit Card',
+          assets: 0,
+          liabilities: 3242.00,
+          net: -3242.00,
+          icon: 'credit_card'
+        }
+      ]
+      
+      setData(mockData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load category breakdown')
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        {/* Chart skeleton */}
+        <div className="h-64 bg-gray-200 rounded-lg"></div>
+
+        {/* Category list skeleton */}
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                <div>
+                  <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                  <div className="flex gap-4">
+                    <div className="h-3 bg-gray-200 rounded w-16"></div>
+                    <div className="h-3 bg-gray-200 rounded w-20"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="h-4 bg-gray-200 rounded w-16 mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-12"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-red-800 mb-2">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="font-medium">Error loading category breakdown</span>
+        </div>
+        <p className="text-red-700 mb-3">{error}</p>
+        <button
+          onClick={fetchCategoryData}
+          className="text-red-800 underline hover:no-underline text-sm"
+        >
+          Try again
+        </button>
+      </div>
+    )
+  }
 
   // Sort by net value descending
   const sortedData = [...data].sort((a, b) => b.net - a.net)
@@ -115,7 +195,7 @@ export default function CategoryBreakdown() {
 
       {/* Category List */}
       <div className="space-y-2">
-        {sortedData.map((category, index) => (
+        {sortedData.map((category) => (
           <div 
             key={category.name}
             className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"

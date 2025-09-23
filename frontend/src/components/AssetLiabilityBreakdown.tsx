@@ -1,4 +1,5 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { useState, useEffect } from 'react'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
 interface BreakdownDataPoint {
   name: string
@@ -74,25 +75,105 @@ function LegendItem({ data, total }: LegendItemProps) {
   )
 }
 
-export default function AssetLiabilityBreakdown() {
-  // Mock data - will be replaced with real API data
-  const data: BreakdownDataPoint[] = [
-    {
-      name: 'Assets',
-      value: 97696.85,
-      color: 'var(--color-secondary)',
-      icon: 'account_balance'
-    },
-    {
-      name: 'Liabilities',
-      value: 3242.00,
-      color: 'var(--color-accent)',
-      icon: 'credit_card'
+interface AssetLiabilityBreakdownProps {
+  refreshTrigger?: number
+}
+
+export default function AssetLiabilityBreakdown({ refreshTrigger }: AssetLiabilityBreakdownProps) {
+  const [data, setData] = useState<BreakdownDataPoint[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchAssetLiabilityData()
+  }, [refreshTrigger])
+
+  const fetchAssetLiabilityData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // For now, simulate API call with mock data
+      // TODO: Replace with actual API call to backend
+      await new Promise(resolve => setTimeout(resolve, 800)) // Simulate API delay
+      
+      const mockData: BreakdownDataPoint[] = [
+        {
+          name: 'Assets',
+          value: 97696.85,
+          color: 'var(--color-secondary)',
+          icon: 'account_balance'
+        },
+        {
+          name: 'Liabilities',
+          value: 3242.00,
+          color: 'var(--color-accent)',
+          icon: 'credit_card'
+        }
+      ]
+      
+      setData(mockData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load asset/liability breakdown')
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        {/* Chart skeleton */}
+        <div className="h-64 bg-gray-200 rounded-lg"></div>
+        
+        {/* Net worth skeleton */}
+        <div className="text-center p-4 bg-gray-100 rounded-lg">
+          <div className="h-4 bg-gray-200 rounded w-20 mx-auto mb-2"></div>
+          <div className="h-8 bg-gray-200 rounded w-32 mx-auto mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-24 mx-auto"></div>
+        </div>
+
+        {/* Legend skeleton */}
+        <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                <div>
+                  <div className="h-4 bg-gray-200 rounded w-16 mb-1"></div>
+                  <div className="h-3 bg-gray-200 rounded w-12"></div>
+                </div>
+              </div>
+              <div className="h-4 bg-gray-200 rounded w-20"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-red-800 mb-2">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="font-medium">Error loading breakdown</span>
+        </div>
+        <p className="text-red-700 mb-3">{error}</p>
+        <button
+          onClick={fetchAssetLiabilityData}
+          className="text-red-800 underline hover:no-underline text-sm"
+        >
+          Try again
+        </button>
+      </div>
+    )
+  }
 
   const total = data.reduce((sum, item) => sum + item.value, 0)
-  const netWorth = data[0].value - data[1].value
+  const netWorth = data[0]?.value - data[1]?.value || 0
 
   return (
     <div className="space-y-6">

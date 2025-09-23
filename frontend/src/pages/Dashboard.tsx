@@ -6,6 +6,7 @@ import NetWorthSummary from '../components/NetWorthSummary'
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('6M')
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
 
   const timeRangeOptions = [
     { value: '1M', label: '1M' },
@@ -40,7 +41,7 @@ export default function Dashboard() {
       </div>
 
       {/* Net Worth Summary Cards */}
-      <NetWorthSummary />
+      <NetWorthSummary refreshTrigger={refreshTrigger} />
 
       {/* Main Chart */}
       <div className="bg-white rounded-lg shadow-sm border">
@@ -49,7 +50,7 @@ export default function Dashboard() {
           <p className="text-sm text-gray-600">Track your net worth over time</p>
         </div>
         <div className="p-6">
-          <NetWorthChart timeRange={timeRange} />
+          <NetWorthChart timeRange={timeRange} refreshTrigger={refreshTrigger} />
         </div>
       </div>
 
@@ -62,7 +63,7 @@ export default function Dashboard() {
             <p className="text-sm text-gray-600">Current balance breakdown</p>
           </div>
           <div className="p-6">
-            <AssetLiabilityBreakdown />
+            <AssetLiabilityBreakdown refreshTrigger={refreshTrigger} />
           </div>
         </div>
 
@@ -73,7 +74,7 @@ export default function Dashboard() {
             <p className="text-sm text-gray-600">Breakdown by account type</p>
           </div>
           <div className="p-6">
-            <CategoryBreakdown />
+            <CategoryBreakdown refreshTrigger={refreshTrigger} />
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { useState, useEffect } from 'react'
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 interface NetWorthDataPoint {
   date: string
@@ -11,6 +11,7 @@ interface NetWorthDataPoint {
 
 interface NetWorthChartProps {
   timeRange: '1M' | '3M' | '6M' | '1Y' | 'ALL'
+  refreshTrigger?: number
 }
 
 // Mock data generator - will be replaced with API data
@@ -65,7 +66,6 @@ function generateMockData(timeRange: string): NetWorthDataPoint[] {
   }
   
   const datePoints = getDatePoints(timeRange)
-  const totalDays = (datePoints[datePoints.length - 1].getTime() - datePoints[0].getTime()) / (1000 * 3600 * 24)
   
   datePoints.forEach((date, index) => {
     // Simulate growth with some volatility
@@ -193,11 +193,63 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   )
 }
 
-export default function NetWorthChart({ timeRange }: NetWorthChartProps) {
-  const chartData = useMemo(() => {
-    const rawData = generateMockData(timeRange)
-    return interpolateData(rawData)
-  }, [timeRange])
+export default function NetWorthChart({ timeRange, refreshTrigger }: NetWorthChartProps) {
+  const [chartData, setChartData] = useState<NetWorthDataPoint[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchChartData()
+  }, [timeRange, refreshTrigger])
+
+  const fetchChartData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // For now, simulate API call with mock data
+      // TODO: Replace with actual API call to backend
+      await new Promise(resolve => setTimeout(resolve, 600)) // Simulate API delay
+      
+      const rawData = generateMockData(timeRange)
+      const interpolatedData = interpolateData(rawData)
+      setChartData(interpolatedData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load chart data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="h-80 animate-pulse">
+        <div className="h-full bg-gray-200 rounded-lg"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="h-80 flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md">
+          <div className="flex items-center gap-2 text-red-800 mb-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-medium">Error loading chart</span>
+          </div>
+          <p className="text-red-700 mb-3">{error}</p>
+          <button
+            onClick={fetchChartData}
+            className="text-red-800 underline hover:no-underline text-sm"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   // Calculate appropriate tick interval for consistent spacing
   const getTickInterval = () => {
