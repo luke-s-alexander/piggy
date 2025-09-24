@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
-import { dashboardApi, NetWorthTrendPoint } from '../services/api'
+import { dashboardApi } from '../services/api'
 
 interface NetWorthDataPoint {
   date: string
@@ -211,7 +211,7 @@ export default function NetWorthChart({ timeRange, refreshTrigger }: NetWorthCha
       const trendData = await dashboardApi.getTrend(timeRange)
       
       // Transform API data to match component interface
-      const transformedData = trendData.data_points.map((point: NetWorthTrendPoint) => ({
+      const transformedData = trendData.data_points.map((point: any) => ({
         date: point.date,
         netWorth: point.net_worth,
         assets: point.assets,

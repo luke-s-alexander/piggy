@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { dashboardApi, CategoryBreakdownItem } from '../services/api'
+import { dashboardApi } from '../services/api'
 
 interface CategoryDataPoint {
   name: string
@@ -74,7 +74,7 @@ export default function CategoryBreakdown({ refreshTrigger }: CategoryBreakdownP
       const categoryData = await dashboardApi.getCategoryBreakdown()
       
       // Transform API data to match component interface
-      const transformedData: CategoryDataPoint[] = categoryData.categories.map((item: CategoryBreakdownItem) => ({
+      const transformedData: CategoryDataPoint[] = categoryData.categories.map((item: any) => ({
         name: item.name,
         assets: item.assets,
         liabilities: item.liabilities,

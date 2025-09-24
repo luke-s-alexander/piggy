@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
-import { dashboardApi, AssetLiabilityBreakdownItem } from '../services/api'
+import { dashboardApi } from '../services/api'
 
 interface BreakdownDataPoint {
   name: string
@@ -97,7 +97,7 @@ export default function AssetLiabilityBreakdown({ refreshTrigger }: AssetLiabili
       const breakdownData = await dashboardApi.getAssetLiabilityBreakdown()
       
       // Transform API data to match component interface
-      const transformedData: BreakdownDataPoint[] = breakdownData.breakdown.map((item: AssetLiabilityBreakdownItem) => ({
+      const transformedData: BreakdownDataPoint[] = breakdownData.breakdown.map((item: any) => ({
         name: item.name,
         value: item.value,
         color: item.color,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { dashboardApi, NetWorthSummary as NetWorthSummaryData } from '../services/api'
+import { dashboardApi } from '../services/api'
 
 interface SummaryData {
   title: string
