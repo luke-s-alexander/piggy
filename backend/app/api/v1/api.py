@@ -5,6 +5,8 @@ from .account_types import router as account_types_router
 from .categories import router as categories_router
 from .transactions import router as transactions_router
 from .budget import router as budget_router
+from .reports import router as reports_router
+from .dashboard import router as dashboard_router
 
 api_router = APIRouter()
 
@@ -13,3 +15,5 @@ api_router.include_router(account_types_router, prefix="/account-types", tags=["
 api_router.include_router(categories_router, prefix="/categories", tags=["categories"])
 api_router.include_router(transactions_router, prefix="/transactions", tags=["transactions"])
 api_router.include_router(budget_router, prefix="/budgets", tags=["budgets"])
+api_router.include_router(reports_router, prefix="/reports", tags=["reports"])
+api_router.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
