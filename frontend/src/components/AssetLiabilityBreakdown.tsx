@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { dashboardApi, AssetLiabilityBreakdownItem } from '../services/api'
 
 interface BreakdownDataPoint {
   name: string
@@ -93,26 +94,17 @@ export default function AssetLiabilityBreakdown({ refreshTrigger }: AssetLiabili
       setLoading(true)
       setError(null)
       
-      // For now, simulate API call with mock data
-      // TODO: Replace with actual API call to backend
-      await new Promise(resolve => setTimeout(resolve, 800)) // Simulate API delay
+      const breakdownData = await dashboardApi.getAssetLiabilityBreakdown()
       
-      const mockData: BreakdownDataPoint[] = [
-        {
-          name: 'Assets',
-          value: 97696.85,
-          color: 'var(--color-secondary)',
-          icon: 'account_balance'
-        },
-        {
-          name: 'Liabilities',
-          value: 3242.00,
-          color: 'var(--color-accent)',
-          icon: 'credit_card'
-        }
-      ]
+      // Transform API data to match component interface
+      const transformedData: BreakdownDataPoint[] = breakdownData.breakdown.map((item: AssetLiabilityBreakdownItem) => ({
+        name: item.name,
+        value: item.value,
+        color: item.color,
+        icon: item.icon
+      }))
       
-      setData(mockData)
+      setData(transformedData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load asset/liability breakdown')
     } finally {

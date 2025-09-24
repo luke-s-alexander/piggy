@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { dashboardApi, CategoryBreakdownItem } from '../services/api'
 
 interface CategoryDataPoint {
   name: string
@@ -70,42 +71,18 @@ export default function CategoryBreakdown({ refreshTrigger }: CategoryBreakdownP
       setLoading(true)
       setError(null)
       
-      // For now, simulate API call with mock data
-      // TODO: Replace with actual API call to backend
-      await new Promise(resolve => setTimeout(resolve, 1200)) // Simulate API delay
+      const categoryData = await dashboardApi.getCategoryBreakdown()
       
-      const mockData: CategoryDataPoint[] = [
-        {
-          name: 'Checking',
-          assets: 1453.23,
-          liabilities: 0,
-          net: 1453.23,
-          icon: 'account_balance'
-        },
-        {
-          name: 'Savings',
-          assets: 3204.38,
-          liabilities: 0,
-          net: 3204.38,
-          icon: 'savings'
-        },
-        {
-          name: 'Investment',
-          assets: 93039.24,
-          liabilities: 0,
-          net: 93039.24,
-          icon: 'trending_up'
-        },
-        {
-          name: 'Credit Card',
-          assets: 0,
-          liabilities: 3242.00,
-          net: -3242.00,
-          icon: 'credit_card'
-        }
-      ]
+      // Transform API data to match component interface
+      const transformedData: CategoryDataPoint[] = categoryData.categories.map((item: CategoryBreakdownItem) => ({
+        name: item.name,
+        assets: item.assets,
+        liabilities: item.liabilities,
+        net: item.net,
+        icon: item.icon
+      }))
       
-      setData(mockData)
+      setData(transformedData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load category breakdown')
     } finally {

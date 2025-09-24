@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { dashboardApi, NetWorthTrendPoint } from '../services/api'
 
 interface NetWorthDataPoint {
   date: string
@@ -207,13 +208,17 @@ export default function NetWorthChart({ timeRange, refreshTrigger }: NetWorthCha
       setLoading(true)
       setError(null)
       
-      // For now, simulate API call with mock data
-      // TODO: Replace with actual API call to backend
-      await new Promise(resolve => setTimeout(resolve, 600)) // Simulate API delay
+      const trendData = await dashboardApi.getTrend(timeRange)
       
-      const rawData = generateMockData(timeRange)
-      const interpolatedData = interpolateData(rawData)
-      setChartData(interpolatedData)
+      // Transform API data to match component interface
+      const transformedData = trendData.data_points.map((point: NetWorthTrendPoint) => ({
+        date: point.date,
+        netWorth: point.net_worth,
+        assets: point.assets,
+        liabilities: point.liabilities
+      }))
+      
+      setChartData(transformedData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load chart data')
     } finally {

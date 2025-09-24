@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { dashboardApi, NetWorthSummary as NetWorthSummaryData } from '../services/api'
 
 interface SummaryData {
   title: string
@@ -87,46 +88,44 @@ export default function NetWorthSummary({ refreshTrigger }: NetWorthSummaryProps
       setLoading(true)
       setError(null)
       
-      // For now, simulate API call with mock data
-      // TODO: Replace with actual API call to backend
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API delay
+      const apiData = await dashboardApi.getSummary(30)
       
-      const mockData: SummaryData[] = [
+      const summaryCards: SummaryData[] = [
         {
           title: 'Net Worth',
-          amount: 94454.85,
-          change: 4791.36,
-          changePercent: 5.3,
+          amount: apiData.current.net_worth,
+          change: apiData.changes.net_worth,
+          changePercent: apiData.changes.net_worth_percent,
           icon: 'trending_up',
           bgColor: 'bg-primary'
         },
         {
           title: 'Total Assets',
-          amount: 97696.85,
-          change: 2204.19,
-          changePercent: 2.3,
+          amount: apiData.current.total_assets,
+          change: apiData.changes.assets,
+          changePercent: apiData.changes.assets_percent,
           icon: 'account_balance',
           bgColor: 'bg-secondary'
         },
         {
           title: 'Total Liabilities',
-          amount: 3242.00,
-          change: -2587.17,
-          changePercent: -44.4,
+          amount: apiData.current.total_liabilities,
+          change: apiData.changes.liabilities,
+          changePercent: apiData.changes.liabilities_percent,
           icon: 'credit_card',
           bgColor: 'bg-accent'
         },
         {
           title: 'Monthly Change',
-          amount: 4791.36,
-          change: 1203.45,
-          changePercent: 33.6,
+          amount: apiData.changes.net_worth,
+          change: apiData.changes.net_worth,
+          changePercent: apiData.changes.net_worth_percent,
           icon: 'show_chart',
           bgColor: 'bg-tertiary'
         }
       ]
       
-      setSummaryData(mockData)
+      setSummaryData(summaryCards)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load net worth summary')
     } finally {
