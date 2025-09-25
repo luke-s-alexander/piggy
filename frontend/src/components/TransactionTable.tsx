@@ -360,10 +360,7 @@ export default function TransactionTable({ onTransactionChange }: TransactionTab
     )
   }
 
-  // Filter and search transactions (from original TransactionList)
-  const filteredAndSortedTransactions = useMemo(() => {
-    return transactions // Already filtered by backend
-  }, [transactions])
+  // TODO: Add filtering and sorting when search functionality is implemented
 
   // Calculate summary statistics (from original TransactionList)  
   const summaryStats = useMemo(() => {
